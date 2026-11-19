@@ -2331,7 +2331,7 @@
         '<div class="ex-list">' + rows + '</div>' + barHtml();
       bindBar();
       qsa(base, '.trd').forEach(function (r) {
-        r.addEventListener('click', function () { openResults(r.getAttribute('data-q'), true); });
+        r.addEventListener('click', function () { realSearch(r.getAttribute('data-q')); });
       });
       var f = qs(base, '#exForm'), q = qs(base, '#exQ');
       f.addEventListener('submit', function (e) {
@@ -2339,8 +2339,15 @@
         var term = String(q.value || '').replace(/^\s+|\s+$/g, '');
         if (!term) { return; }
         q.blur();
-        openResults(term, term.indexOf(C.SEARCH_KEYWORD || 'ㅇㅇ') !== -1);
+        realSearch(term);
       });
+    }
+    /* 검색하면 진짜 X(트위터) 검색 결과가 새 탭으로 열려요 */
+    function realSearch(term) {
+      var url = 'https://x.com/search?q=' + encodeURIComponent(term) + '&src=typed_query';
+      var w = null;
+      try { w = window.open(url, '_blank', 'noopener'); } catch (e) {}
+      if (!w) { var a = document.createElement('a'); a.href = url; a.target = '_blank'; a.rel = 'noopener'; document.body.appendChild(a); a.click(); a.remove(); }
     }
 
     /* 검색 결과: 가상 기사 링크가 걸린 게시물 목록. 카드를 누르면 사파리에 넣어둔 가상 기사가 열려요 */
@@ -2532,16 +2539,17 @@
           '<div class="spp-a"><div class="spp-who">' + xav(t.avatar, t.avatarFallback) + '<div><b>' + esc(t.name) + '</b><span>' + esc(ago(t.age)) + '</span></div><span class="spp-more">⋮</span></div>' +
             '<div class="spp-at">' + rich(ans) + '</div><div class="spp-act"><span class="spp-gift">⭐ 선물하기</span>' + heart + '</div></div>' +
           '<div class="spp-prof">' + xav(t.avatar, t.avatarFallback) + '<div><b>' + esc(t.name) + '</b><span>팔로워 ' + esc(t.spin.followers || 1) + '</span></div></div>' +
-          '<div style="height:330px"></div></div>' +
-        '<div class="spp-bar"><button type="button" class="spp-x" aria-label="닫기">' + xIc + '</button><div class="spp-url"><b>' + SPIN_DOMAIN + '</b><span>⋮</span></div><span class="spp-rf">' + rf + '</span></div>' +
+          '<div class="spp-sp"></div></div>' +
+        '<div class="spp-bot"><div class="spp-bar"><button type="button" class="spp-x" aria-label="닫기">' + xIc + '</button><div class="spp-url"><b>' + SPIN_DOMAIN + '</b><span>⋮</span></div><span class="spp-rf">' + rf + '</span></div>' +
         '<div class="spp-sheet"><i class="grab"></i><div class="spp-tw">' + xav(t.avatar, t.avatarFallback) + '<div class="nm"><b>' + esc(t.name) + '</b><span>@' + esc(t.handle) + '</span></div><span class="spp-dm">쪽지</span></div>' +
           '<div class="spp-tt">' + rich(t.text) + '</div>' +
           '<div class="spp-ic"><span>' + I.reply + '</span><button type="button" data-act="quotes" data-id="' + t.id + '">' + I.repost + '</button>' +
           '<button type="button" class="lk' + (liked[t.id] ? ' on' : '') + '" data-act="like" data-id="' + t.id + '">' + I.like + '</button>' +
-          '<button type="button" class="bmk' + (marked[t.id] ? ' on' : '') + '" data-act="bm" data-id="' + t.id + '">' + I.bm + '</button><span>' + I.shr + '</span></div></div>' +
+          '<button type="button" class="bmk' + (marked[t.id] ? ' on' : '') + '" data-act="bm" data-id="' + t.id + '">' + I.bm + '</button><span>' + I.shr + '</span></div></div></div>' +
         '</div>', 'xa');
       v.style.background = '#fff';
       qs(v, '.spp-x').addEventListener('click', function () { popView(v); });
+      requestAnimationFrame(function () { var b = qs(v, '.spp-bot'), sp = qs(v, '.spp-sp'); if (b && sp) { sp.style.height = (b.offsetHeight + 16) + 'px'; } });
     }
 
     /* 쪽지 대화 */

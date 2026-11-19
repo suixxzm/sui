@@ -1050,3 +1050,24 @@ svg{display:block}
 .spp-ic .bmk.on{color:#1d9bf0}.spp-ic .bmk.on svg path{fill:#1d9bf0;stroke:#1d9bf0}
 .imgs.one .im{aspect-ratio:auto;min-height:120px}
 .imgs.one .im img{height:auto;max-height:520px}
+
+/* ===== 스핀: 실제 크기에 맞게 줄이기 ===== */
+.sp-out{padding:11px 10px 16px}
+.sp-box{min-height:132px;padding:24px 16px 26px;border-radius:8px}
+.sp-box .sp-logo{top:-10px;right:18px;font-size:16px;line-height:18px;padding:0 6px}
+.sp-q{font-size:14px;line-height:1.45}
+.sp-cap{left:10px;right:22px;bottom:10px;font-size:12.5px;padding:2px 7px}
+.spp-sc{top:calc(var(--top) + 3px);padding-top:0}
+.spp-hd{padding:12px 16px 12px}
+.spp-hd .sp-logo{font-size:23px}
+.spp-login{font-size:13px;padding:8px 12px;border-radius:10px}
+.spp-q{min-height:170px;padding-bottom:16px}
+.spp-qt{margin-top:16px}
+.spp-at{margin-top:12px}
+.spp-act{margin-top:16px}
+.spp-bot{position:absolute;left:0;right:0;bottom:0;z-index:8;display:flex;flex-direction:column}
+.spp-bar{position:static;margin:0 12px 10px;height:46px}
+.spp-sheet{position:static;padding:8px 14px calc(var(--sab) + 16px)}
+.spp-tw .xav{width:40px;height:40px}
+.spp-tt{margin-top:8px;font-size:15px;-webkit-line-clamp:2}
+.spp-ic{margin-top:10px}
