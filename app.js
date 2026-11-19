@@ -2327,13 +2327,15 @@
       }).join('');
       base.innerHTML = sbHtml('dark') +
         '<div class="ex-top"><div class="r1"><span class="me2">' + I.person.replace('<svg ', '<svg width="22" height="22" ').replace('fill="currentColor"', 'fill="#fff"') + '</span>' +
-        '<form class="sbx" id="exForm" action="#">' + I.search + '<input id="exQ" type="search" enterkeyhint="search" placeholder="검색" autocomplete="off" autocapitalize="off" spellcheck="false"></form><span class="gr2">' + gear + '</span></div><div class="tabs">' + tabs + '</div></div>' +
+        '<form class="sbx" id="exForm" action="#">' + I.search + '<input id="exQ" type="search" enterkeyhint="search" placeholder="X 검색" autocomplete="off" autocapitalize="off" spellcheck="false"></form><span class="gr2">' + gear + '</span></div><div class="tabs">' + tabs + '</div></div>' +
         '<div class="ex-list">' + rows + '</div>' + barHtml();
       bindBar();
       qsa(base, '.trd').forEach(function (r) {
         r.addEventListener('click', function () { realSearch(r.getAttribute('data-q')); });
       });
       var f = qs(base, '#exForm'), q = qs(base, '#exQ');
+      if (!rows) { qs(base, '.ex-list').innerHTML = '<div class="ex-hint">검색어를 입력하면 X에서 실제 검색 결과가 열려요</div>'; }
+      try { q.focus(); } catch (e) {}
       f.addEventListener('submit', function (e) {
         e.preventDefault();
         var term = String(q.value || '').replace(/^\s+|\s+$/g, '');
