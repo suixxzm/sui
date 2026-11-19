@@ -492,6 +492,7 @@
     L.lock = l;
     setBg(qs(l, '#lockBg'), [C.IMG.lockWallpaper]);
     startDMs();
+    if (!window.__kkFlowStarted) { window.__kkFlowStarted = true; setTimeout(kkRunAll, 1200); }
     bindLockNotifs(); lockDense();
     (function () {
       var dd = ddInfo(); if (!dd) { return; }
@@ -1231,10 +1232,64 @@
   var kkS = {};          /* 방 이름 -> { step, blocked } */
   var kkUI = null;       /* 지금 열려 있는 카카오톡 화면 { layer, name, add(g), refresh(), goRoom(n) } */
   var KK_DATE = C.TODAY;
+  /* ---- 카톡 선택지 대화 진행 ----
+     config.js 의 KAKAO.SCRIPT["이름"] = [ 단계, 단계, ... ]
+     { me: "문장" }            → 내가 보낼 말 (자판으로 자동 입력, 보내기는 직접)
+     { them: ["말", "말"] }     → 상대가 보내는 말 (입력 중 … 표시 후 도착)
+     { wait: 밀리초, them: [...] } → 기다렸다가 상대가 보내는 말
+     { choice: [ { label: "버튼 글자", steps: [...] }, { label: "답장 안 하기", silent: true, steps: [...] } ] } → 선택지 */
   function kkState(name) {
-    if (!KK_SCRIPT[name]) { return null; }
-    if (!kkS[name]) { kkS[name] = { step: 0, blocked: false }; }
+    if (!KK_SCRIPT[name] || !KK_SCRIPT[name].length) { return null; }
+    if (!kkS[name]) { kkS[name] = { q: KK_SCRIPT[name].slice(), busy: false }; }
     return kkS[name];
+  }
+  function kkStep(name) { var st = kkState(name); return st && !st.busy ? (st.q[0] || null) : null; }
+  function kkUiField(name) { var ui = kkUiLive(); if (ui && ui.name === name && ui.field) { ui.field(); } }
+  /* 방끼리 연결: 선택하면 표시(set)가 남고, 다른 방이 그 표시를 보고 대사·선택지·진행이 바뀌어요 */
+  var KK_FLAGS = {};
+  function kkHasAll(f) { if (!f) { return true; } return (Array.isArray(f) ? f : [f]).every(function (x) { return !!KK_FLAGS[x]; }); }
+  function kkHasAny(f) { if (!f) { return false; } return (Array.isArray(f) ? f : [f]).some(function (x) { return !!KK_FLAGS[x]; }); }
+  function kkOk(o) { return !o || (kkHasAll(o['if']) && !kkHasAny(o.unless)); }
+  function kkSetFlags(f) {
+    if (!f) { return; }
+    (Array.isArray(f) ? f : [f]).forEach(function (x) { if (x) { KK_FLAGS[x] = true; } });
+    setTimeout(function () { Object.keys(KK_SCRIPT).forEach(function (n) { if (kkS[n]) { kkRun(n); } }); }, 0);
+  }
+  function kkRunAll() { Object.keys(KK_SCRIPT).forEach(function (n) { kkRun(n); }); }
+  function kkRun(name) {
+    var st = kkState(name); if (!st || st.busy) { return; }
+    var guard = 0;
+    while (st.q.length && guard++ < 500) {
+      var s0 = st.q[0];
+      if (!kkOk(s0)) { st.q.shift(); continue; }                                   /* if / unless 가 안 맞는 단계는 건너뛰기 */
+      if (s0.need) { if (!kkHasAll(s0.need)) { break; } st.q.shift(); continue; }  /* 다른 방에서 표시가 생길 때까지 기다리기 */
+      if (s0.cond) { st.q.shift(); st.q = ((kkOk(s0.cond) ? s0.then : s0['else']) || []).concat(st.q); continue; }
+      if (s0.set && !s0.me && !s0.them && !s0.choice) { st.q.shift(); kkSetFlags(s0.set); continue; }
+      if (s0.to) {                                                               /* 다른 방으로 메시지 보내기 (기다리지 않고 바로 다음 단계) */
+        st.q.shift();
+        (function (o) { setTimeout(function () { if (o.them && o.them.length) { kkReplies(o.to, o.them, function () { if (o.set2) { kkSetFlags(o.set2); } }); } }, o.wait || 0); })(s0);
+        continue;
+      }
+      if (s0.ending) { st.q.shift(); setTimeout(function () { kkEnding(s0.ending[0], s0.ending[1]); }, s0.wait || 2200); kkUiField(name); return; }
+      break;
+    }
+    var s = st.q[0];
+    if (s && (s.them || s.wait) && !s.choice && !s.me) {
+      st.q.shift(); st.busy = true; kkUiField(name);
+      var go = function () { st.busy = false; if (s.set) { kkSetFlags(s.set); } kkRun(name); };
+      var say = function () { if (s.them && s.them.length) { kkReplies(name, s.them, go); } else { go(); } };
+      if (s.wait) { setTimeout(say, s.wait); } else { say(); }
+      return;
+    }
+    kkUiField(name);
+  }
+  function kkSent(name) { var st = kkState(name); if (!st) { return; } var s0 = st.q[0]; if (s0 && s0.me) { st.q.shift(); if (s0.set) { kkSetFlags(s0.set); } } kkRun(name); }
+  function kkPick(name, i) {
+    var st = kkState(name); if (!st || st.busy) { return; }
+    var s = st.q[0]; if (!s || !s.choice || !s.choice[i]) { return; }
+    st.q.shift(); st.q = (s.choice[i].steps || []).concat(st.q);
+    kkSetFlags(s.choice[i].set);
+    kkRun(name);
   }
   function kkUiLive() { return kkUI && kkUI.layer && kkUI.layer.isConnected ? kkUI : null; }
   function kkPush(name, from, text) {
@@ -1291,25 +1346,6 @@
       if (ui && ui.name === name) { setTimeout(function () { var u = kkUiLive(); if (u && u.name === name) { u.typing(true); } }, i === 0 ? 500 : 80); }
       setTimeout(function () { var u = kkUiLive(); if (u && u.name === name) { u.typing(false); } kkIncoming(name, list[i]); i++; next(); }, wait);
     })();
-  }
-  /* 내가 한 마디를 보냈을 때 스크립트 진행 */
-  function kkAfterSend(name, text) {
-    var st = kkState(name); if (!st) { return; }
-    var script = KK_SCRIPT[name], stp = script[st.step] || {};
-    var r = stp.go ? stp.go(text) : stp;
-    st.step = (r.next !== undefined) ? r.next : Math.min(st.step + 1, script.length - 1);
-    var reply = r.reply || [];
-    if (!reply.length && !r.after && !r.then) { var nx = script[st.step]; return !!(nx && nx.auto); }
-    st.blocked = true;
-    var ui0 = kkUiLive(); if (ui0 && ui0.name === name) { ui0.field(); }
-    function unblock() { st.blocked = false; var ui = kkUiLive(); if (ui && ui.name === name) { ui.field(); } }
-    function afterReplies() {
-      if (r.then) { setTimeout(function () { kkReplies(name, r.then.msgs, unblock); }, r.then.wait); }
-      else if (r.after) { r.after(unblock); }
-      else { unblock(); }
-    }
-    if (reply.length) { kkReplies(name, reply, afterReplies); } else { afterReplies(); }
-    return false;
   }
   IMPL.kakao = function (layer) {
     setHB('dark');
@@ -1570,7 +1606,7 @@
       var v = pushView(layer, sbHtml('dark') +
         '<div class="kr-top"><button type="button" class="back">' + I.back + '</button><b>' + esc(name) + '</b><div class="ics">' + kic.search + kic.menu + '</div></div>' +
         '<div class="kr-body" id="krb">' + html + '<div style="height:12px"></div></div>' +
-        '<div class="kr-in"><span class="pl">' + kic.plus + '</span><div class="fld"><textarea id="krI" rows="1" placeholder="메시지 입력" autocomplete="off" autocapitalize="off" enterkeyhint="send"></textarea>' + kic.emo + '</div><span class="hs" id="krH">' + kic.hash + '</span></div>' + (kkState(name) ? kkbHtml() : ''), 'kr');
+        '<div class="kc-ch" id="kcCh"></div><div class="kr-in"><span class="pl">' + kic.plus + '</span><div class="fld"><textarea id="krI" rows="1" placeholder="메시지 입력" autocomplete="off" autocapitalize="off" enterkeyhint="send"></textarea>' + kic.emo + '</div><span class="hs" id="krH">' + kic.hash + '</span></div>' + (kkState(name) ? kkbHtml() : ''), 'kr');
       v.style.background = '#b2c7da';
       var body = qs(v, '#krb');
       requestAnimationFrame(function () { body.scrollTop = body.scrollHeight; });
@@ -1631,33 +1667,40 @@
         hs.innerHTML = has ? '<button type="button" class="snd" aria-label="전송">' + SEND_IC + '</button>' : kic.hash;
         var bt = qs(hs, '.snd'); if (bt) { bt.addEventListener('click', doSend); }
       }
+      var chBox = qs(v, '#kcCh');
       function doSend() {
         var text = String(inp.value || '').replace(/^\s+|\s+$/g, '');
         if (!text || typing) { return; }
         var g = kkPush(name, 'me', text); inp.value = '';
         addMsg(g); syncSend(); inp.blur();
-        var chain = kkAfterSend(name, text);
-        if (chain && startAuto) { setTimeout(startAuto, 700); } else { kbHide(); }
+        kkSent(name);
+        var nx = kkStep(name);
+        if (!(nx && nx.me)) { kbHide(); }
       }
-      /* 입력창 상태: 막힘 / 자동 입력(누르면 쳐짐) / 직접 입력 */
+      /* 입력창 상태: 막힘 / 선택지 / 자동 입력 */
       function field() {
-        var stp = st ? KK_SCRIPT[name][st.step] : null;
-        var locked = st && (st.blocked || (stp && stp.done));
-        var auto = st && !locked && stp && stp.auto;
-        var free = st ? (!locked && !auto) : false;
-        inp.readOnly = !free; inp.setAttribute('inputmode', free ? 'text' : 'none');
+        var stp = kkStep(name);
+        inp.readOnly = true; inp.setAttribute('inputmode', 'none');
         inp.placeholder = '메시지 입력';
-        if (!typing && !free) { inp.value = ''; }
+        if (!typing && !(stp && stp.me)) { inp.value = ''; }
         syncSend();
-        if (locked && document.activeElement === inp) { inp.blur(); }
-        if (auto && (st.want || stp.chain) && startAuto) { var quick = st.want; st.want = false; setTimeout(startAuto, quick ? 250 : 800); }
+        if (stp && stp.choice) {
+          kbHide();
+          chBox.innerHTML = stp.choice.map(function (c, i) { return kkOk(c) ? '<button type="button" class="kc-b' + (c.silent ? ' sil' : '') + '" data-i="' + i + '">' + esc(fillName(c.label)) + '</button>' : ''; }).join('');
+          chBox.classList.add('on'); v.classList.add('chon');
+          qsa(chBox, '.kc-b').forEach(function (b) {
+            b.addEventListener('click', function () { chBox.classList.remove('on'); chBox.innerHTML = ''; kkPick(name, parseInt(b.getAttribute('data-i'), 10)); });
+          });
+          scroll();
+        } else { chBox.classList.remove('on'); chBox.innerHTML = ''; v.classList.remove('chon'); }
+        if (stp && stp.me && startAuto && !typing && !inp.value) { setTimeout(startAuto, 650); }
       }
       if (st) {
         startAuto = function () {
-          var stp = KK_SCRIPT[name][st.step];
-          if (st.blocked || typing || !stp || !stp.auto || inp.value || !v.isConnected) { return; }
+          var stp = kkStep(name);
+          if (typing || !stp || !stp.me || inp.value || !v.isConnected) { return; }
           inp.blur();
-          var steps = hgSteps(stp.auto), i = 0; typing = true; syncSend();
+          var steps = hgSteps(fillName(stp.me)), i = 0; typing = true; syncSend();
           kbShow();
           function press(keys) {
             keys.forEach(function (kk) {
@@ -1675,18 +1718,15 @@
           }
           typeTimer = setTimeout(nextKey, 320);
         };
-        inp.addEventListener('focus', function () { if (st.blocked) { st.want = true; inp.blur(); return; } startAuto(); });
-        inp.addEventListener('click', function () { if (st.blocked) { st.want = true; } else { startAuto(); } });
         inp.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); doSend(); } });
-        inp.addEventListener('input', syncSend);
-        qs(v, '.fld').addEventListener('click', function () { if (st.blocked) { st.want = true; } else { startAuto(); } });
+        qs(v, '.fld').addEventListener('click', function () { startAuto(); });
         field();
+        setTimeout(function () { kkRun(name); }, 0);
       } else {
         inp.readOnly = true; inp.setAttribute('inputmode', 'none'); autosize();
-        qs(v, '.fld').addEventListener('click', function () { /* 이 방은 아직 직접 칠 수 없어요 */ });
       }
       kkUI = { layer: layer, name: name, add: addMsg, typing: typingRow, refresh: listRefresh, field: field, goRoom: function (n) { v.remove(); kkUI.name = null; openRoom(n); } };
-      qs(v, '.back').addEventListener('click', function () { clearInterval(typeTimer); kkUI.name = null; popView(v, function () { render(); }); });
+      qs(v, '.back').addEventListener('click', function () { clearTimeout(typeTimer); typing = false; kkUI.name = null; popView(v, function () { render(); }); });
     }
     kkUI = { layer: layer, name: null, add: function () {}, typing: function () {}, refresh: listRefresh, field: function () {}, goRoom: function (n) { openRoom(n); } };
     render();
