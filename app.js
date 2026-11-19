@@ -226,6 +226,18 @@
   ICO.messages = '<svg viewBox="0 0 60 60"><defs><linearGradient id="msG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6ae17a"/><stop offset="1" stop-color="#2bb648"/></linearGradient></defs><rect width="60" height="60" fill="url(#msG)"/><path d="M30 14c-9.400 0-17 6.200-17 13.800 0 4.400 2.500 8.300 6.500 10.800-.5 2.200-1.800 4.300-3.500 6 3.400-.3 6.700-1.700 9-3.500 1.600.4 3.300.6 5 .6 9.400 0 17-6.200 17-13.900C47 20.200 39.400 14 30 14z" fill="#fff"/></svg>';
   ICO.kakao = '<svg viewBox="0 0 60 60"><rect width="60" height="60" fill="#fae100"/><ellipse cx="30" cy="27.500" rx="19.500" ry="15.500" fill="#3b1e1e"/><path d="M19.500 37l-3.500 10 11.500-6.500z" fill="#3b1e1e"/><text x="30" y="31.500" font-size="10.500" font-weight="800" text-anchor="middle" fill="#fae100" font-family="Arial,Helvetica,sans-serif">TALK</text></svg>';
 
+  ICO.dday = '<svg viewBox="0 0 60 60"><rect width="60" height="60" fill="#ff7aa8"/><path d="M30 47S14 37.600 14 26.800C14 21.200 18 17 22.900 17c3.100 0 5.600 1.600 7.100 4 1.500-2.400 4-4 7.100-4C42 17 46 21.200 46 26.800 46 37.600 30 47 30 47z" fill="#fff"/><text x="30" y="34" font-size="11.500" font-weight="900" text-anchor="middle" fill="#ff5c93" font-family="Arial,Helvetica,sans-serif">D+</text></svg>';
+  /* ---------- 디데이 (기념일) ---------- */
+  function ddInfo() {
+    var D = C.DDAY; if (!D || !D.partner) { return null; }
+    var days = parseInt(D.days, 10) || 100;
+    var today = new Date(TD[0], TD[1] - 1, TD[2]);
+    var start = new Date(TD[0], TD[1] - 1, TD[2] - (days - 1));
+    return { partner: D.partner, days: days, today: today, start: start, photo: D.photo || '' };
+  }
+  function ddFmt(d, sep) { sep = sep || '.'; return d.getFullYear() + sep + pad2(d.getMonth() + 1) + sep + pad2(d.getDate()); }
+  function ddNotifText(dd) { return (C.DDAY && C.DDAY.notif) || (dd.partner + '님과 ' + dd.days + '일입니다'); }
+
   /* ---------- 공통 요소 ---------- */
   function sbHtml(mode, left) {
     return '<div class="sb ' + mode + '"">' + (left ? '<span>' + esc(left) + '</span>' : '<span class="clk">' + clockStr() + '</span>') + '<span class="r">' + I.signal + I.wifi + I.batt + '</span></div>';
@@ -476,6 +488,15 @@
     setBg(qs(l, '#lockBg'), [C.IMG.lockWallpaper]);
     startDMs();
     bindLockNotifs(); lockDense();
+    (function () {
+      var dd = ddInfo(); if (!dd) { return; }
+      setTimeout(function () {
+        if (current !== 'lock' || !L.lock) { return; }
+        var box = qs(L.lock, '.notifs'); if (!box || qs(box, '.notif[data-dd]')) { return; }
+        var n = el('<div class="notif pop" data-dd="1" data-app="dday"><div class="ic">' + ICO.dday + '</div><div class="tx"><b>디데이</b><span>' + esc(ddNotifText(dd)) + '</span></div><div class="tm">' + esc((C.DDAY && C.DDAY.time) || '방금') + '</div></div>');
+        box.insertBefore(n, box.firstChild); bindLockNotifs(); lockDense();
+      }, 900);
+    })();
     qs(l, '#lkHit').addEventListener('click', showPass);
     swipeDetect(l, function (dx, dy) { if (!passOn && dy < -50 && Math.abs(dy) > Math.abs(dx)) { showPass(); } });
     qsa(l, '.key[data-k]').forEach(function (k) {
@@ -524,6 +545,7 @@
     setTimeout(function () { lock.remove(); L.lock = null; }, 360);
     if (pendingDm) { var pid = pendingDm; pendingDm = null; goDm(pid); }
     else if (pendingKk) { kkGoto = pendingKk; pendingKk = null; openApp('kakao', null, { instant: true }); }
+    else if (pendingApp) { var pa = pendingApp; pendingApp = null; openApp(pa, null, { instant: true }); }
   }
   document.addEventListener('keydown', function (e) {
     if (current === 'lock' && passOn && /^[0-9]$/.test(e.key)) { pressKey(e.key); }
@@ -537,11 +559,19 @@
   function appHtml(id, label, icon, extra) {
     return '<button type="button" class="app" data-app="' + id + '"><div class="ico">' + icon + (extra || '') + '</div>' + (label ? '<span class="lb">' + esc(label) + '</span>' : '') + '</button>';
   }
+  function ddWidgetHtml() {
+    var dd = ddInfo(); if (!dd) { return ''; }
+    var bg = dd.photo ? ' style="background-image:linear-gradient(rgba(0,0,0,.08),rgba(0,0,0,.38)),url(&quot;' + esc(rs(dd.photo)) + '&quot;)"' : '';
+    return '<button type="button" class="app wdg" data-app="dday"><div class="dd-w' + (dd.photo ? ' ph' : '') + '"' + bg + '>' +
+      '<div class="dd-nm"><span>' + esc(dd.partner) + '</span><i>♥</i><span>' + esc(USER.name || '나') + '</span></div>' +
+      '<div class="dd-cap">우리 함께한 지</div><div class="dd-n">' + dd.days + '<small>일</small></div>' +
+      '<div class="dd-st">' + ddFmt(dd.start) + ' ~</div></div><span class="lb">디데이</span></button>';
+  }
   function buildHome() {
     var weverse = appHtml('weverse', 'Weverse', ICO.weverseFb);
     var h = el('<section class="layer home" id="home">' +
       '<div class="bgimg bg-home" id="homeBg"></div><div class="shade"></div>' + sbHtml('light') +
-      '<div class="grid">' +
+      '<div class="grid">' + ddWidgetHtml() +
       appHtml('x', 'X', ICO.x) + appHtml('instagram', 'Instagram', ICO.instagram) + appHtml('youtube', 'YouTube', ICO.youtube) + weverse +
       appHtml('photos', '사진', ICO.photos) + appHtml('settings', '설정', ICO.settings) +
       '</div>' +
@@ -653,6 +683,31 @@
   /* =========================================================
      설정 (아이폰 설정 모양)
      ========================================================= */
+  IMPL.dday = function (layer) {
+    setHB('dark');
+    var dd = ddInfo(); if (!dd) { return null; }
+    var DAY = 86400000;
+    function addDays(n) { return new Date(dd.start.getFullYear(), dd.start.getMonth(), dd.start.getDate() + n - 1); }
+    function addYears(y) { return new Date(dd.start.getFullYear() + y, dd.start.getMonth(), dd.start.getDate()); }
+    var list = [];
+    [100, 200, 300, 400, 500, 600, 700, 800, 900, 1000].forEach(function (n) { list.push({ t: n + '일', d: addDays(n) }); });
+    [1, 2, 3].forEach(function (y) { list.push({ t: y + '주년', d: addYears(y) }); });
+    list = list.filter(function (x) { return x.d >= dd.today; }).sort(function (a, b) { return a.d - b.d; }).slice(0, 7);
+    var WD = ['일', '월', '화', '수', '목', '금', '토'];
+    var rows = list.map(function (x) {
+      var left = Math.round((x.d - dd.today) / DAY);
+      return '<div class="dd-row' + (left === 0 ? ' now' : '') + '"><div><b>' + x.t + '</b><span>' + ddFmt(x.d) + ' (' + WD[x.d.getDay()] + ')</span></div><em>' + (left === 0 ? 'D-DAY' : 'D-' + left) + '</em></div>';
+    }).join('');
+    var heroBg = dd.photo ? ' style="background-image:linear-gradient(rgba(0,0,0,.05),rgba(0,0,0,.45)),url(&quot;' + esc(rs(dd.photo)) + '&quot;)"' : '';
+    layer.innerHTML = '<div class="dd-app">' + sbHtml(dd.photo ? 'light' : 'dark') +
+      '<div class="dd-sc"><div class="dd-hero' + (dd.photo ? ' ph' : '') + '"' + heroBg + '>' +
+      '<div class="dd-nm big"><span>' + esc(dd.partner) + '</span><i>♥</i><span>' + esc(USER.name || '나') + '</span></div>' +
+      '<div class="dd-cap">우리 함께한 지</div><div class="dd-n big">' + dd.days + '<small>일</small></div>' +
+      '<div class="dd-st">' + ddFmt(dd.start, '. ') + '. 부터</div></div>' +
+      '<div class="dd-sec">다가오는 기념일</div><div class="dd-list">' + rows + '</div><div style="height:60px"></div></div></div>';
+    return null;
+  };
+
   IMPL.settings = function (layer) {
     setHB('dark');
     function sq(color, inner) {
@@ -1877,27 +1932,63 @@
     return n;
   }
   function likeCount(t) { return t.like + (liked[t.id] ? 1 : 0); }
-  function actsHtml(t, opts) {
-    opts = opts || {};
-    var rtAttr = ' data-lp="1"';
-    var rtCount = t.hasQuotes ? '<span class="rtn" data-act="quotes">' + compact(t.rt) + '</span>' : '<span>' + compact(t.rt) + '</span>';
-    return '<div class="acts"><span class="a">' + I.reply + '</span>' +
-      '<button type="button"' + rtAttr + '>' + I.repost + rtCount + '</button>' +
-      '<button type="button" class="lk' + (liked[t.id] ? ' on' : '') + '" data-act="like" data-id="' + t.id + '">' + I.like + '<span>' + compact(likeCount(t)) + '</span></button>' +
-      '<span class="a">' + I.views + '<span>' + compact(t.views) + '</span></span>' +
-      '<span class="a">' + I.bm + '</span><span class="a">' + I.shr + '</span></div>';
+  /* 북마크 / 인용 / 재게시 (트윗마다 따로) */
+  var marked = {};
+  function bmCount(t) { return (t.bm || 0) + (marked[t.id] ? 1 : 0); }
+  function twById(id) { return C.TWEETS.filter(function (x) { return x.id === id; })[0]; }
+  function quotesOf(t) { return t.quotes || []; }
+  /* 재게시한 계정: config 에 reposts 가 없으면 알계 아이디를 자동으로 만들어요(같은 트윗은 늘 같은 목록) */
+  var RP_CACHE = {};
+  function repostsOf(t) {
+    if (t.reposts) { return t.reposts; }
+    if (RP_CACHE[t.id]) { return RP_CACHE[t.id]; }
+    var seed = 0, k;
+    for (k = 0; k < String(t.id).length; k++) { seed = (seed * 31 + String(t.id).charCodeAt(k)) % 2147483647; }
+    seed = seed || 7;
+    function rnd(n) { seed = (seed * 1103515245 + 12345) % 2147483648; return Math.floor(seed / 65536) % n; }
+    var Lt = 'abcdefghijklmnopqrstuvwxyz', Dg = '0123456789';
+    function pick(set, n) { var o = ''; for (var i = 0; i < n; i++) { o += set.charAt(rnd(set.length)); } return o; }
+    var pre = ['tws_', 'twsmy_', '42_', 'sinyu_', 'dohoon_', 'youngjae_', 'kyungmin_', 'jihoon_', 'hanjin_', ''];
+    var n = Math.min(t.rt || 0, 18), out = [], seen = {};
+    while (out.length < n) {
+      var h = pre[rnd(pre.length)] + pick(Lt, 3 + rnd(4)) + (rnd(2) ? pick(Dg, 1 + rnd(3)) : '');
+      if (!seen[h]) { seen[h] = 1; out.push({ name: h, handle: h }); }
+    }
+    RP_CACHE[t.id] = out;
+    return out;
   }
-  function tweetHtml(t) {
+  function actsHtml(t, full) {
+    var num = full ? comma : compact;
+    return '<div class="acts"><span class="a">' + I.reply + '</span>' +
+      '<button type="button" data-act="quotes" data-id="' + t.id + '">' + I.repost + '<span>' + num(t.rt) + '</span></button>' +
+      '<button type="button" class="lk' + (liked[t.id] ? ' on' : '') + '" data-act="like" data-id="' + t.id + '"' + (full ? ' data-full="1"' : '') + '>' + I.like + '<span>' + num(likeCount(t)) + '</span></button>' +
+      (full ? '' : '<span class="a">' + I.views + '<span>' + compact(t.views) + '</span></span>') +
+      '<button type="button" class="bmk' + (marked[t.id] ? ' on' : '') + '" data-act="bm" data-id="' + t.id + '"' + (full ? ' data-full="1"' : '') + '>' + I.bm + (full ? '<span>' + comma(bmCount(t)) + '</span>' : '') + '</button>' +
+      '<span class="a">' + I.shr + '</span></div>';
+  }
+  /* 스핀: 트윗 안의 질문 카드. 카드를 누르면 스핀 답변 페이지가 열려요 */
+  var SPIN_DOMAIN = 'spin-spin.com';
+  var SPIN_LOGO = '<span class="sp-logo">Spinspin</span>';
+  function spinCard(t) {
+    var oneLine = String(t.spin.q).replace(/\s+/g, ' ');
+    return '<div class="spin" data-act="spin" data-id="' + t.id + '"><div class="sp-out"><div class="sp-box">' + SPIN_LOGO + '<div class="sp-q">' + esc(t.spin.q) + '</div></div>' +
+      '<div class="sp-cap">' + esc(oneLine) + '</div></div><div class="sp-src">출처: ' + SPIN_DOMAIN + '</div></div>';
+  }
+  function mediaHtml(t) {
     var media = '';
+    if (t.spin) { media += spinCard(t); }
     if (t.card) {
       media += '<div class="twirl"><div class="cd"><span class="lab">twirl twirl</span>' + esc(t.card) + '</div><div class="src">출처: twirl-twirl.invalid</div></div>';
     }
-    if (t.images) {
-      media += '<div class="imgs two">' + t.images.map(function (s) { return '<div class="im">' + imgTag(s) + '</div>'; }).join('') + '</div>';
+    if (t.images && t.images.length) {
+      media += '<div class="imgs ' + (t.images.length === 1 ? 'one' : 'two') + '">' + t.images.map(function (s) { return '<div class="im">' + imgTag(s) + '</div>'; }).join('') + '</div>';
     }
+    return media;
+  }
+  function tweetHtml(t) {
     return '<article class="tw" data-id="' + t.id + '">' + xav(t.avatar, t.avatarFallback) +
       '<div class="mn"><div class="hd"><b>' + esc(t.name) + '</b><span>@' + esc(t.handle) + ' · ' + esc(t.age) + '</span><span class="xl">' + I.xlogo(17) + '</span></div>' +
-      '<div class="tx">' + rich(t.text) + '</div>' + media + actsHtml(t) + '</div></article>';
+      '<div class="tx">' + rich(t.text) + '</div>' + mediaHtml(t) + actsHtml(t, false) + '</div></article>';
   }
   function updateBadge() {
     if (!xCtx) { return; }
@@ -2022,11 +2113,12 @@
       if (n.__b) { return; }
       n.__b = true;
       n.style.cursor = 'pointer';
-      n.addEventListener('click', function () { if (n.__moved) { return; } pendingDm = n.getAttribute('data-id') || null; pendingKk = n.getAttribute('data-kk') || null; showPass(); });
+      n.addEventListener('click', function () { if (n.__moved) { return; } pendingDm = n.getAttribute('data-id') || null; pendingKk = n.getAttribute('data-kk') || null; pendingApp = n.getAttribute('data-app') || null; showPass(); });
       swipeAway(n, lockScrollMode);
     });
   }
   var pendingDm = null;
+  var pendingApp = null;
   function goDm(id) {
     function go() { if (xCtx && xCtx.goDM) { xCtx.goDM(id, true); } }
     if (current === 'lock') { pendingDm = id; showPass(); return; }
@@ -2173,7 +2265,7 @@
         '<button type="button" data-go="home">' + (ctx.tab === 'home' ? I.homeOn : I.home) + '<i class="rd"></i></button>' +
         '<button type="button" data-go="search">' + I.search.replace('width="18" height="18"', 'width="26" height="26"').replace('stroke-width="2.4"', ctx.tab === 'search' ? 'stroke-width="3.4"' : 'stroke-width="2.4"') + '</button>' +
         '<button type="button" data-go="me"><span class="pf' + (ctx.tab === 'me' ? ' act' : '') + '">' + I.person.replace('<svg ', '<svg width="20" height="20" ').replace('fill="currentColor"', 'fill="#fff"') + '</span></button>' +
-        '<button type="button" data-go="noti">' + (ctx.tab === 'noti' ? I.bell.replace('stroke-width="2"', 'stroke-width="3"') : I.bell) + (notiOpen || ctx.tab === 'noti' ? '' : '<span class="bg2" style="display:flex">' + (C.NOTIS || []).length + '</span>') + '</button>' +
+        '<button type="button" data-go="noti">' + (ctx.tab === 'noti' ? I.bell.replace('stroke-width="2"', 'stroke-width="3"') : I.bell) + (notiOpen || ctx.tab === 'noti' || !(C.NOTIS || []).length ? '' : '<span class="bg2" style="display:flex">' + (C.NOTIS || []).length + '</span>') + '</button>' +
         '<button type="button" data-go="dm">' + (ctx.tab === 'dm' ? I.mailOn : I.mail) + '<span class="bg2" id="dmBadge" style="display:' + (n > 0 ? 'flex' : 'none') + '">' + n + '</span></button></div>';
     }
     function bindBar() {
@@ -2331,125 +2423,125 @@
     }
     function render() { if (ctx.tab === 'fol') { renderFollowers(); return; } if (ctx.tab === 'me') { renderMe(); return; } if (ctx.tab === 'home') { renderHome(); } else if (ctx.tab === 'search') { renderSearch(); } else if (ctx.tab === 'noti') { renderNoti(); } else { renderDM(); } }
 
-    /* 피드/상세에서 쓰는 공통 동작: 마음, 트윗 열기, 재게시 숫자 */
+    /* 피드/상세 공통: 트윗을 누르면 상세, 하트·북마크·재게시·스핀은 아래 한 곳에서 처리해요 */
     function bindFeed(scope) {
       qsa(scope, '.tw').forEach(function (a) {
         a.addEventListener('click', function (e) {
-          if (e.target.closest('[data-act]') || e.target.closest('[data-lp]') || a.__lp) { a.__lp = false; return; }
+          if (e.target.closest('[data-act]')) { return; }
           openDetail(a.getAttribute('data-id'));
         });
       });
-      bindActs(scope);
     }
-    function bindActs(scope) {
-      qsa(scope, '[data-act="like"]').forEach(function (b) {
-        b.addEventListener('click', function (e) {
-          e.stopPropagation();
-          var id = b.getAttribute('data-id');
-          liked[id] = !liked[id];
-          var t = C.TWEETS.filter(function (x) { return x.id === id; })[0];
-          qsa(layer, '[data-act="like"][data-id="' + id + '"]').forEach(function (x) {
-            x.classList.toggle('on', !!liked[id]);
-            var sp = qs(x, 'span'); if (sp) { sp.textContent = compact(likeCount(t)); }
-          });
-        });
+    function refreshActs(id) {
+      var t = twById(id); if (!t) { return; }
+      qsa(layer, '[data-act="like"][data-id="' + id + '"]').forEach(function (x) {
+        x.classList.toggle('on', !!liked[id]);
+        var sp = qs(x, 'span'); if (sp) { sp.textContent = x.getAttribute('data-full') ? comma(likeCount(t)) : compact(likeCount(t)); }
       });
-      qsa(scope, '[data-act="quotes"]').forEach(function (s) {
-        s.addEventListener('click', function (e) { e.stopPropagation(); var art = s.closest('.tw'); openActivity(art ? art.getAttribute('data-id') : null); });
+      qsa(layer, '[data-act="bm"][data-id="' + id + '"]').forEach(function (x) {
+        x.classList.toggle('on', !!marked[id]);
+        var sp = qs(x, 'span'); if (sp) { sp.textContent = comma(bmCount(t)); }
       });
-      qsa(scope, '[data-lp]').forEach(function (b) {
-        var timer = null;
-        b.addEventListener('pointerdown', function () {
-          timer = setTimeout(function () { timer = null; var art = b.closest('.tw'); if (art) { art.__lp = true; } openActivity(art ? art.getAttribute('data-id') : null); }, 500);
-        });
-        ['pointerup', 'pointerleave', 'pointercancel'].forEach(function (ev) {
-          b.addEventListener(ev, function () { if (timer) { clearTimeout(timer); timer = null; } });
-        });
-      });
+      qsa(layer, '[data-st="like"][data-id="' + id + '"]').forEach(function (x) { x.textContent = comma(likeCount(t)); });
+      qsa(layer, '[data-st="bm"][data-id="' + id + '"]').forEach(function (x) { x.textContent = comma(bmCount(t)); });
     }
+    layer.addEventListener('click', function (e) {
+      var a = e.target.closest ? e.target.closest('[data-act]') : null;
+      if (!a || !layer.contains(a)) { return; }
+      var act = a.getAttribute('data-act'), id = a.getAttribute('data-id');
+      if (!id) { return; }
+      e.stopPropagation();
+      if (act === 'like') { liked[id] = !liked[id]; refreshActs(id); }
+      else if (act === 'bm') { marked[id] = !marked[id]; refreshActs(id); }
+      else if (act === 'quotes' || act === 'qlist') { openActivity(id, 'q'); }
+      else if (act === 'reposts') { openActivity(id, 'r'); }
+      else if (act === 'spin') { openSpin(id); }
+    });
 
     /* 트윗 상세 */
     function openDetail(id) {
-      var t = C.TWEETS.filter(function (x) { return x.id === id; })[0];
+      var t = twById(id);
       if (!t) { return; }
-      var media = '';
-      if (t.card) { media += '<div class="twirl"><div class="cd"><span class="lab">twirl twirl</span>' + esc(t.card) + '</div><div class="src">출처: twirl-twirl.invalid</div></div>'; }
-      if (t.images) { media += '<div class="imgs two">' + t.images.map(function (s) { return '<div class="im">' + imgTag(s) + '</div>'; }).join('') + '</div>'; }
       var replies = (t.replies || []).map(function (r) {
-        return '<div class="rp">' + xavDefault() + '<div><div class="hd"><b>' + esc(r.name) + '</b><span>@' + esc(r.handle) + ' · ' + esc(r.age) + '</span></div><div class="tx">' + esc(r.text) + '</div></div></div>';
+        return '<div class="rp">' + xav(r.avatar) + '<div><div class="hd"><b>' + esc(r.name) + '</b><span>@' + esc(r.handle) + ' · ' + esc(r.age) + '</span></div><div class="tx">' + rich(r.text) + '</div></div></div>';
       }).join('');
-      var rtN = t.hasQuotes ? '<span class="rtn" data-act="quotes">' + comma(t.rt) + '</span>' : '<span>' + comma(t.rt) + '</span>';
       var v = pushView(root, sbHtml('dark') +
         '<div class="dtop"><button type="button" class="back" style="color:#0f1419">' + I.back + '</button><span class="tt">게시물</span></div>' +
         '<div class="scroll"><div class="dbody"><div class="au">' + xav(t.avatar, t.avatarFallback) + '<div><b>' + esc(t.name) + '</b><span>@' + esc(t.handle) + '</span></div></div>' +
-        '<div class="big">' + rich(t.text) + '</div>' + media +
-        '<div class="meta">' + esc(t.detailTime) + ' · ' + TD[0] + '. ' + TD[1] + '. ' + TD[2] + '. · 조회 <b>' + t.views + '</b>회</div>' +
-        '<div class="acts"><span class="a" style="opacity:.35">' + I.reply + '</span><button type="button" class="gr"' + ' data-lp="1"' + '>' + I.repost + rtN + '</button>' +
-        '<button type="button" class="lk' + (liked[t.id] ? ' on' : '') + '" data-act="like" data-id="' + t.id + '">' + I.like + '<span>' + comma(likeCount(t)) + '</span></button>' +
-        '<span class="a">' + I.bm + '<span>' + comma(t.bm) + '</span></span><span class="a">' + I.shr + '</span></div>' +
-        '<div class="lockbox">' + I.lockSm + '<span>일부 계정만 답글을 쓸 수 있습니다.</span></div>' + replies + '</div></div>', 'xa');
+        '<div class="big">' + rich(t.text) + '</div>' + mediaHtml(t) +
+        '<div class="meta">' + esc(t.detailTime || '') + ' · ' + TD[0] + '. ' + TD[1] + '. ' + TD[2] + '. · 조회 <b>' + comma(t.views || 0) + '</b>회</div>' +
+        '<div class="dstats"><span data-act="reposts" data-id="' + t.id + '"><b>' + comma(t.rt || 0) + '</b> 재게시</span><span data-act="qlist" data-id="' + t.id + '"><b>' + comma(quotesOf(t).length) + '</b> 인용</span>' +
+        '<span><b data-st="like" data-id="' + t.id + '">' + comma(likeCount(t)) + '</b> 마음에 들어요</span><span><b data-st="bm" data-id="' + t.id + '">' + comma(bmCount(t)) + '</b> 북마크</span></div>' +
+        actsHtml(t, true) +
+        (t.lockReplies ? '<div class="lockbox">' + I.lockSm + '<span>일부 계정만 답글을 쓸 수 있습니다.</span></div>' : '') + replies + '<div style="height:40px"></div></div></div>', 'xa');
       v.style.background = '#fff';
       qs(v, '.back').addEventListener('click', function () { popView(v); });
-      /* 상세 화면의 마음은 숫자에 쉼표 표기 */
-      qsa(v, '[data-act="like"]').forEach(function (b) {
-        b.addEventListener('click', function (e) {
-          e.stopPropagation();
-          var tid = b.getAttribute('data-id');
-          liked[tid] = !liked[tid];
-          b.classList.toggle('on', !!liked[tid]);
-          qs(b, 'span').textContent = comma(likeCount(t));
-          qsa(base, '[data-act="like"][data-id="' + tid + '"]').forEach(function (x) {
-            x.classList.toggle('on', !!liked[tid]); qs(x, 'span').textContent = compact(likeCount(t));
-          });
-        });
-      });
-      qsa(v, '[data-act="quotes"]').forEach(function (s) { s.addEventListener('click', function (e) { e.stopPropagation(); openActivity(t.id); }); });
-      qsa(v, '[data-lp]').forEach(function (b) {
-        var timer = null;
-        b.addEventListener('pointerdown', function () { timer = setTimeout(function () { timer = null; openActivity(t.id); }, 500); });
-        ['pointerup', 'pointerleave', 'pointercancel'].forEach(function (ev) { b.addEventListener(ev, function () { if (timer) { clearTimeout(timer); timer = null; } }); });
-      });
     }
 
     /* 게시 활동 (인용 / 재게시) */
-    function openActivity(tid) {
+    function openActivity(tid, startTab) {
       if (qs(root, '.view.act')) { return; }
-      var tw = C.TWEETS.filter(function (x) { return x.id === tid; })[0] || C.TWEETS.filter(function (x) { return x.hasQuotes; })[0];
-      var t6 = tw;
-      var hasQ = !!tw.hasQuotes;
+      var t6 = twById(tid); if (!t6) { return; }
       var mini = (t6.images || []).map(function (s) { return '<div>' + imgTag(s) + '</div>'; }).join('');
       function quotesHtml() {
-        if (!hasQ) { return '<div class="act-empty"><h2>아직 인용 없음</h2><p>다른 사람의 게시물을 공유할 때 본인의 의견을 추가하면 여기에 표시됩니다.</p></div>'; }
-        return C.QUOTES.map(function (q) {
-          return '<div class="qt">' + xavDefault() + '<div style="flex:1;min-width:0"><div class="hd" style="display:flex;gap:4px;font-size:15px"><b>' + esc(q.name) + '</b><span style="color:#536471">@' + esc(q.handle) + ' · ' + esc(q.age) + '</span></div>' +
-            '<div class="tx" style="font-size:15px;line-height:20px;margin-top:2px">' + esc(q.text) + '</div>' +
-            '<div class="emb"><div class="ee"><div class="hd"><b>' + esc(t6.name) + '</b><span>@' + esc(t6.handle) + ' · ' + esc(t6.age) + '</span></div><p>' + rich(t6.text) + '</p><div class="mini">' + mini + '</div></div></div>' +
+        var qsList = quotesOf(t6);
+        if (!qsList.length) { return '<div class="act-empty"><h2>아직 인용 없음</h2><p>다른 사람의 게시물을 공유할 때 본인의 의견을 추가하면 여기에 표시됩니다.</p></div>'; }
+        return qsList.map(function (q) {
+          return '<div class="qt">' + xav(q.avatar) + '<div style="flex:1;min-width:0"><div class="hd" style="display:flex;gap:4px;font-size:15px"><b>' + esc(q.name) + '</b><span style="color:#536471">@' + esc(q.handle) + ' · ' + esc(q.age || '') + '</span></div>' +
+            '<div class="tx" style="font-size:15px;line-height:20px;margin-top:2px;white-space:pre-wrap">' + rich(q.text) + '</div>' +
+            '<div class="emb"><div class="ee"><div class="hd"><b>' + esc(t6.name) + '</b><span>@' + esc(t6.handle) + ' · ' + esc(t6.age) + '</span></div><p>' + rich(t6.text) + '</p>' + (mini ? '<div class="mini">' + mini + '</div>' : '') + '</div></div>' +
             '<div class="acts"><span class="a">' + I.reply + '</span><span class="a">' + I.repost + '</span><span class="a">' + I.like + '</span><span class="a">' + I.views + '</span><span class="a">' + I.bm + '</span><span class="a">' + I.shr + '</span></div></div></div>';
         }).join('');
       }
       function repostsHtml() {
-        if (!hasQ) { return '<div class="act-empty"><h2>마음에 드는 게시물 널리 알리기</h2><p>다른 사람의 게시물을 재게시해 내 타임라인에서 공유하세요. 재게시하면 여기에 표시됩니다.</p></div>'; }
-        return C.REPOSTS.map(function (r) {
-          return '<div class="rep-row">' + xavDefault() + '<div><b>' + esc(r.name) + '</b><span>@' + esc(r.handle) + '</span></div></div>';
+        var list = repostsOf(t6);
+        if (!list.length) { return '<div class="act-empty"><h2>마음에 드는 게시물 널리 알리기</h2><p>다른 사람의 게시물을 재게시해 내 타임라인에서 공유하세요. 재게시하면 여기에 표시됩니다.</p></div>'; }
+        return list.map(function (r) {
+          return '<div class="rep-row">' + xav(r.avatar) + '<div style="flex:1;min-width:0"><b>' + esc(r.name) + '</b><span>@' + esc(r.handle) + '</span></div><span class="fl-b">팔로우</span></div>';
         }).join('');
       }
+      var rpIc = I.repost.replace('<svg ', '<svg style="width:20px;height:20px;flex:none" ');
       var v = pushView(root, sbHtml('dark') +
         '<div class="act-top"><div class="t1"><button type="button" class="bk back" style="color:#0f1419;padding:0">' + I.back + '</button>게시 활동<span class="so">' + I.sort + '</span></div>' +
-        '<div class="t2"><button type="button" data-t="q" class="on">' + I.pencil + '<span>인용</span></button><button type="button" data-t="r"><span>재게시</span></button></div></div>' +
-        '<div class="act-list" id="actList">' + quotesHtml() + '</div>', 'xa act');
+        '<div class="t2"><button type="button" data-t="q">' + I.pencil + '<span>인용</span></button><button type="button" data-t="r">' + rpIc + '<span>재게시</span></button></div></div>' +
+        '<div class="act-list" id="actList"></div>', 'xa act');
       v.style.background = '#fff';
       qs(v, '.bk').addEventListener('click', function () { popView(v); });
-      qsa(v, '.t2 button').forEach(function (b) {
-        b.addEventListener('click', function () {
-          qsa(v, '.t2 button').forEach(function (x) {
-            x.classList.toggle('on', x === b);
-            var ic = x.querySelector('svg'); if (ic) { ic.remove(); }
-            if (x === b) { x.insertAdjacentHTML('afterbegin', x.getAttribute('data-t') === 'q' ? I.pencil : I.repost.replace('<svg ', '<svg style="width:20px;height:20px;flex:none" ')); }
-          });
-          qs(v, '#actList').innerHTML = b.getAttribute('data-t') === 'q' ? quotesHtml() : repostsHtml();
-          qs(v, '#actList').scrollTop = 0;
-        });
-      });
+      function show(k) {
+        qsa(v, '.t2 button').forEach(function (x) { x.classList.toggle('on', x.getAttribute('data-t') === k); });
+        qs(v, '#actList').innerHTML = k === 'q' ? quotesHtml() : repostsHtml();
+        qs(v, '#actList').scrollTop = 0;
+      }
+      qsa(v, '.t2 button').forEach(function (b) { b.addEventListener('click', function () { show(b.getAttribute('data-t')); }); });
+      show(startTab === 'r' ? 'r' : 'q');
+    }
+
+    /* 스핀 답변 페이지 (X 안에서 열리는 웹페이지 모양, 아래에 원래 트윗이 붙어 있어요) */
+    function openSpin(id) {
+      var t = twById(id); if (!t || !t.spin) { return; }
+      var ans = t.spin.a || t.text;
+      var ago = function (x) { x = String(x || ''); return /전$/.test(x) ? x : (x ? x + ' 전' : '방금'); };
+      var heart = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="1.8" stroke-linejoin="round"><path d="M12 20s-7.500-4.600-9-9.200C2 7 4.400 4.500 7.400 4.500c1.900 0 3.500 1 4.600 2.600 1.100-1.600 2.700-2.600 4.600-2.600 3 0 5.400 2.500 4.400 6.300C19.500 15.400 12 20 12 20z"/></svg>';
+      var xIc = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2.2" stroke-linecap="round"><path d="M5 5l14 14M19 5L5 19"/></svg>';
+      var rf = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19.500 12a7.500 7.500 0 11-2.200-5.300M19.500 4.500v4.500H15"/></svg>';
+      var v = pushView(root,
+        '<div class="spp">' + sbHtml('dark') + '<div class="spp-prog"></div>' +
+        '<div class="spp-sc">' +
+          '<div class="spp-hd">' + SPIN_LOGO + '<span class="spp-login">회원가입/로그인</span></div>' +
+          '<div class="spp-q"><div class="spp-who"><i class="spp-anon">S</i><div><b>익명</b><span>' + esc(ago(t.spin.qAge || t.age)) + '</span></div></div><div class="spp-qt">' + esc(t.spin.q) + '</div></div>' +
+          '<div class="spp-a"><div class="spp-who">' + xav(t.avatar, t.avatarFallback) + '<div><b>' + esc(t.name) + '</b><span>' + esc(ago(t.age)) + '</span></div><span class="spp-more">⋮</span></div>' +
+            '<div class="spp-at">' + rich(ans) + '</div><div class="spp-act"><span class="spp-gift">⭐ 선물하기</span>' + heart + '</div></div>' +
+          '<div class="spp-prof">' + xav(t.avatar, t.avatarFallback) + '<div><b>' + esc(t.name) + '</b><span>팔로워 ' + esc(t.spin.followers || 1) + '</span></div></div>' +
+          '<div style="height:330px"></div></div>' +
+        '<div class="spp-bar"><button type="button" class="spp-x" aria-label="닫기">' + xIc + '</button><div class="spp-url"><b>' + SPIN_DOMAIN + '</b><span>⋮</span></div><span class="spp-rf">' + rf + '</span></div>' +
+        '<div class="spp-sheet"><i class="grab"></i><div class="spp-tw">' + xav(t.avatar, t.avatarFallback) + '<div class="nm"><b>' + esc(t.name) + '</b><span>@' + esc(t.handle) + '</span></div><span class="spp-dm">쪽지</span></div>' +
+          '<div class="spp-tt">' + rich(t.text) + '</div>' +
+          '<div class="spp-ic"><span>' + I.reply + '</span><button type="button" data-act="quotes" data-id="' + t.id + '">' + I.repost + '</button>' +
+          '<button type="button" class="lk' + (liked[t.id] ? ' on' : '') + '" data-act="like" data-id="' + t.id + '">' + I.like + '</button>' +
+          '<button type="button" class="bmk' + (marked[t.id] ? ' on' : '') + '" data-act="bm" data-id="' + t.id + '">' + I.bm + '</button><span>' + I.shr + '</span></div></div>' +
+        '</div>', 'xa');
+      v.style.background = '#fff';
+      qs(v, '.spp-x').addEventListener('click', function () { popView(v); });
     }
 
     /* 쪽지 대화 */
