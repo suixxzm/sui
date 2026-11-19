@@ -1165,3 +1165,12 @@ svg{display:block}
 .ks-act .si{height:34px;display:flex;align-items:center}
 .kmi{display:block}
 .kk-av img{object-fit:cover!important}
+
+/* ===== 카톡 선택지 ===== */
+.kc-ch{position:absolute;left:0;right:0;bottom:calc(var(--sab) + 72px);z-index:6;display:none;flex-direction:column;align-items:flex-end;gap:8px;padding:10px 12px 6px}
+.kc-ch.on{display:flex;animation:kcIn .25s ease-out both}
+@keyframes kcIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.kc-b{max-width:85%;padding:11px 16px;border-radius:18px;background:#fff;border:1.5px solid #fee500;box-shadow:0 2px 10px rgba(0,0,0,.12);font-size:15px;line-height:1.35;color:#111;text-align:left;font-weight:500}
+.kc-b:active{background:#fff8bf}
+.kc-b.sil{border-color:#d6dbe1;color:#6b7684;font-style:normal}
+.kr.chon .kr-body{padding-bottom:calc(90px + 150px)}
