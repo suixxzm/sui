@@ -473,7 +473,7 @@
     clearLayers();
     passBuf = ''; passOn = false;
     setHB('light');
-    var notifs = preGroupHtml() + kakaoLockHtml() + xFollowHtml() + C.NOTIFS.map(function (n) {
+    var notifs = preGroupHtml() + kakaoLockHtml() + xRecHtml() + xFollowHtml() + C.NOTIFS.map(function (n) {
       var mm = String(n.time).match(/(\d+)\s*분/), off = n.time === '방금' ? 0 : (mm ? parseInt(mm[1], 10) : -1);
       return '<div class="notif"><div class="ic">' + ICO.phone + '</div><div class="tx"><b>' + esc(n.name) + '</b><span>' + esc(n.text) + '</span></div><div class="tm"' + (off >= 0 ? ' data-at="' + (clockMin() - off) + '"' : '') + '>' + esc(n.time) + '</div></div>';
     }).join('');
@@ -556,6 +556,7 @@
     if (pendingDm) { var pid = pendingDm; pendingDm = null; goDm(pid); }
     else if (pendingKk) { kkGoto = pendingKk; pendingKk = null; openApp('kakao', null, { instant: true }); }
     else if (pendingApp) { var pa = pendingApp; pendingApp = null; openApp(pa, null, { instant: true }); }
+    else if (pendingTw) { var ptw = pendingTw; pendingTw = null; openApp('x', null, { instant: true }); if (xCtx && xCtx.goTweet) { xCtx.goTweet(ptw); } }
   }
   document.addEventListener('keydown', function (e) {
     if (current === 'lock' && passOn && /^[0-9]$/.test(e.key)) { pressKey(e.key); }
@@ -762,7 +763,7 @@
       grp(G1) + grp(G2) + grp(G3) +
       '<div id="stSkipBox"></div>' +
       '<div class="st-grp"><button type="button" class="st-row st-reset" id="stReset">처음부터 다시 하기</button></div>' +
-      '<div style="text-align:center;color:#aeaeb2;font-size:12px;padding:6px 0 30px">버전 31</div></div></div>';
+      '<div style="text-align:center;color:#aeaeb2;font-size:12px;padding:6px 0 30px">버전 33</div></div></div>';
     var iL = qs(layer, '#stLast'), iF = qs(layer, '#stFirst'), iI = qs(layer, '#stIg');
     qs(layer, '#stNotif').addEventListener('click', function () {
       setNotifOff(!notifOff);
@@ -1237,9 +1238,12 @@
     });
     return ov;
   }
-  function kkEnding(kind, num) {
-    var good = kind === 'reunion';
-    var ov = el('<div class="kend start ' + (good ? 'good' : 'bad') + '"><div class="ke-in"><div class="ke-n">' + num + '번 엔딩</div><div class="ke-t">' + (good ? '재회엔딩💕💕' : '이별엔딩💔') + '</div><button type="button" class="ke-b">처음부터 다시</button></div></div>');
+  function kkEnding(kind, num, title, text) {
+    var good = kind === 'reunion' || kind === 'good';
+    var ov = el('<div class="kend start s2 ' + (good ? 'good' : 'bad') + '"><div class="card ke-card"><div class="s2-badge">' + (good ? '♥' : '·') + '</div>' +
+      '<div class="ke-n">ENDING ' + pad2(num) + '</div><div class="ke-t">' + esc(fillName(title || (good ? '재회엔딩💕💕' : '이별엔딩💔'))) + '</div>' +
+      (text ? '<div class="ke-x">' + esc(fillName(text)) + '</div>' : '') +
+      '<button type="button" class="go ke-b">처음부터 다시</button></div></div>');
     phone.appendChild(ov);
     resolve((C.IMG && C.IMG.startBg) || './start-bg.jpg', function (v) {
       if (!v) { return; }
@@ -1250,7 +1254,7 @@
     qs(ov, '.ke-b').addEventListener('click', function () { location.reload(); });
   }
   /* config.js 의 스토리 스크립트에서 쓸 수 있는 기능: PHONE.call / PHONE.ending / PHONE.replies / PHONE.incoming */
-  window.PHONE = { call: function (o) { return kkCall(o); }, ending: function (k, n) { kkEnding(k, n); }, replies: function (n, l, d) { kkReplies(n, l, d); }, incoming: function (n, t) { kkIncoming(n, t); } };
+  window.PHONE = { call: function (o) { return kkCall(o); }, ending: function (k, n, t, x) { kkEnding(k, n, t, x); }, replies: function (n, l, d) { kkReplies(n, l, d); }, incoming: function (n, t) { kkIncoming(n, t); } };
   var kkS = {};          /* 방 이름 -> { step, blocked } */
   var kkUI = null;       /* 지금 열려 있는 카카오톡 화면 { layer, name, add(g), refresh(), goRoom(n) } */
   var KK_DATE = C.TODAY;
@@ -1275,7 +1279,29 @@
   function kkSetFlags(f) {
     if (!f) { return; }
     (Array.isArray(f) ? f : [f]).forEach(function (x) { if (x) { KK_FLAGS[x] = true; } });
+    kkCheckEnding();
     setTimeout(function () { Object.keys(KK_SCRIPT).forEach(function (n) { var f0 = KK_SCRIPT[n][0]; if (kkS[n] || (f0 && f0.need && kkHasAll(f0.need))) { kkRun(n); } }); }, 0);
+  }
+  /* 엔딩: config 의 KAKAO.ENDINGS — if(모두) + any(하나라도) 표시가 모이면 엔딩 화면 */
+  var END_DONE = false;
+  function kkCheckEnding() {
+    if (END_DONE) { return; }
+    (C.KAKAO && C.KAKAO.ENDINGS || []).some(function (e) {
+      if (!kkHasAll(e['if'])) { return false; }
+      if (e.any && !kkHasAny(e.any)) { return false; }
+      END_DONE = true;
+      setTimeout(function () { kkEnding(e.kind, e.n, e.title, e.text); }, e.wait || 3500);
+      return true;
+    });
+  }
+  /* 끼어들기: config 의 KAKAO.INTERRUPT — 조건이 맞으면 그 방의 남은 대화를 steps 로 바꿔요 (다른 방 선택 때문에 대화가 틀어질 때) */
+  var INTR_DONE = {};
+  function kkIntr(name) {
+    var st = kkS[name]; if (!st || st.busy) { return; }
+    (C.KAKAO && C.KAKAO.INTERRUPT || []).forEach(function (it, k) {
+      if (INTR_DONE[k] || it.room !== name || !kkHasAll(it['if']) || kkHasAny(it.unless)) { return; }
+      INTR_DONE[k] = true; st.q = (it.steps || []).slice();
+    });
   }
   /* 세 카톡이 모두 끝나면(남은 단계가 '저녁 기다리기'뿐이면) 잠시 뒤 폰 시간을 저녁으로 돌리고 '저녁' 표시를 남겨요 */
   /* 기다렸다가 오는 카톡(wait) 목록 — 설정에서 '카톡 바로 받기'로 당겨올 수 있어요 */
@@ -1387,6 +1413,7 @@
   function kkRunAll() { Object.keys(KK_SCRIPT).forEach(function (n) { kkRun(n); }); }
   function kkRun(name) {
     var st = kkState(name); if (!st || st.busy) { return; }
+    kkIntr(name);
     var guard = 0;
     while (st.q.length && guard++ < 500) {
       var s0 = st.q[0];
@@ -2327,6 +2354,12 @@
       return '<div class="notif" data-kk="' + esc(o.n) + '"><div class="ic">' + ICO.kakao + '</div><div class="tx"><b>' + esc(o.n) + '</b><span>' + esc(o.l.img ? '사진' : fillName(o.l.text)) + '</span></div><div class="tm">' + esc(o.l.t) + '</div></div>';
     }).join('');
   }
+  /* 다음 날: 폭로글을 X 추천 게시물 알림처럼 (누르면 그 트윗이 열려요) */
+  function xRecHtml() {
+    var R0 = KK_FLAGS['다음날'] && C.DAY2 && C.DAY2.REC_NOTI; if (!R0 || notifOff) { return ''; }
+    var t = (C.TWEETS || []).filter(function (x) { return x.id === R0.tweet; })[0]; if (!t) { return ''; }
+    return '<div class="notif" data-tw="' + esc(t.id) + '"><div class="ic">' + ICO.x + '</div><div class="tx"><b>' + esc(R0.title || t.name) + '</b><span>' + rich(String(t.text).replace(/\n+/g, ' ')) + '</span></div><div class="tm">' + esc(R0.time || '') + '</div></div>';
+  }
   function xFollowHtml() {
     if (notifOff) { return ''; }
     var n = (C.NOTIS || [])[0];
@@ -2406,12 +2439,12 @@
       if (n.__b) { return; }
       n.__b = true;
       n.style.cursor = 'pointer';
-      n.addEventListener('click', function () { if (n.__moved) { return; } pendingDm = n.getAttribute('data-id') || null; pendingKk = n.getAttribute('data-kk') || null; pendingApp = n.getAttribute('data-app') || null; showPass(); });
+      n.addEventListener('click', function () { if (n.__moved) { return; } pendingDm = n.getAttribute('data-id') || null; pendingKk = n.getAttribute('data-kk') || null; pendingApp = n.getAttribute('data-app') || null; pendingTw = n.getAttribute('data-tw') || null; showPass(); });
       swipeAway(n, lockScrollMode);
     });
   }
   var pendingDm = null;
-  var pendingApp = null;
+  var pendingApp = null, pendingTw = null;
   function goDm(id) {
     function go() { if (xCtx && xCtx.goDM) { xCtx.goDM(id, true); } }
     if (current === 'lock') { pendingDm = id; showPass(); return; }
@@ -2608,6 +2641,7 @@
       });
     }
     ctx.renderDM = renderDM;
+    ctx.goTweet = function (id) { openDetail(id); };
     ctx.goDM = function (id, instant) {
       ctx.tab = 'dm';
       render();

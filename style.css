@@ -1203,3 +1203,13 @@ svg{display:block}
 .dbody .acts{font-size:15px;padding:10px 0}
 .dbody .acts button,.dbody .acts span.a{font-size:15px;gap:6px}
 .dbody .acts svg{width:21px;height:21px}
+.notif[data-tw] .tx span{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+/* ===== 엔딩 화면 (시작 화면 이미지 + 카드) ===== */
+.kend.start.s2{justify-content:center;padding:0 30px;background-color:#fbe3f0}
+.kend .ke-card{width:100%;text-align:center;padding:46px 22px 24px}
+.kend .ke-n{display:inline-block;font-size:12px;font-weight:800;letter-spacing:2px;color:#8cbf78;background:#effae9;border-radius:20px;padding:5px 14px;margin:0 0 14px}
+.kend .ke-t{font-size:26px;font-weight:800;color:#e0679f;letter-spacing:-.4px;line-height:1.3;margin:0 0 10px;word-break:keep-all}
+.kend .ke-x{font-size:14px;color:#b08a9f;line-height:1.6;white-space:pre-line;margin:0 0 6px;word-break:keep-all}
+.kend .ke-b{margin-top:22px;border:0}
+.kend.bad .s2-badge{background:#d9c9d3}
+.kend.bad .ke-t{color:#8a6a80}
