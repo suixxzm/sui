@@ -762,7 +762,7 @@
       grp(G1) + grp(G2) + grp(G3) +
       '<div id="stSkipBox"></div>' +
       '<div class="st-grp"><button type="button" class="st-row st-reset" id="stReset">처음부터 다시 하기</button></div>' +
-      '<div style="text-align:center;color:#aeaeb2;font-size:12px;padding:6px 0 30px">버전 30</div></div></div>';
+      '<div style="text-align:center;color:#aeaeb2;font-size:12px;padding:6px 0 30px">버전 31</div></div></div>';
     var iL = qs(layer, '#stLast'), iF = qs(layer, '#stFirst'), iI = qs(layer, '#stIg');
     qs(layer, '#stNotif').addEventListener('click', function () {
       setNotifOff(!notifOff);
@@ -1393,6 +1393,7 @@
       if (!kkOk(s0)) { st.q.shift(); continue; }                                   /* if / unless 가 안 맞는 단계는 건너뛰기 */
       if (s0.need) { if (!kkHasAll(s0.need)) { break; } st.q.shift(); continue; }  /* 다른 방에서 표시가 생길 때까지 기다리기 */
       if (s0.cond) { st.q.shift(); st.q = ((kkOk(s0.cond) ? s0.then : s0['else']) || []).concat(st.q); continue; }
+      if (s0.unset && !s0.me && !s0.them && !s0.choice) { st.q.shift(); (Array.isArray(s0.unset) ? s0.unset : [s0.unset]).forEach(function (x) { delete KK_FLAGS[x]; }); continue; }  /* 표시 지우기 (약속 취소 등) */
       if (s0.set && !s0.me && !s0.them && !s0.choice) { st.q.shift(); kkSetFlags(s0.set); continue; }
       if (s0.to) {                                                               /* 다른 방으로 메시지 보내기 (기다리지 않고 바로 다음 단계) */
         st.q.shift();
