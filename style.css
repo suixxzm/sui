@@ -1095,3 +1095,70 @@ svg{display:block}
 .start.s2 .note{font-size:12px;color:#c3a3b5;margin:-4px 0 22px;text-align:center}
 .start.s2 .go{border-radius:30px;background:#8fd17a;font-size:17px;font-weight:800;padding:16px;box-shadow:0 4px 0 #74b860}
 .start.s2 .go:disabled{background:#e3f3db;color:#b5d6a6;box-shadow:0 4px 0 #d3eac7}
+
+/* ===== 카카오톡 (새 디자인) ===== */
+.kk-bar2{height:calc(var(--sab) + 64px);padding:8px 10px var(--sab);background:#f9f9f9;border-top:1px solid #ececec}
+.kk-bar2 button{color:#b1b1b6;padding-top:6px;justify-content:flex-start}
+.kk-bar2 button.on{color:#1a1a1a}
+.kk-bar2 .bd{top:-1px;left:calc(50% + 4px);min-width:22px;height:20px;border-radius:10px;background:#ff4e2e;font-size:12px;border:1.5px solid #f9f9f9}
+.kk-head2 h1{font-size:26px;font-weight:500;letter-spacing:-.5px}
+.kk-head2 .ics{gap:18px}
+.kk-head2 .ics svg{width:27px;height:27px}
+.kk-dot{position:relative;display:flex}
+.kk-dot::after{content:'';position:absolute;right:-3px;top:-3px;width:6px;height:6px;border-radius:50%;background:#ff4e2e}
+.kk-l2{padding-top:calc(var(--top) + 60px)}
+.kk-pills{display:flex;gap:7px;padding:2px 16px 14px}
+.kk-pills.hs{overflow-x:auto;scrollbar-width:none}
+.kk-pills.hs::-webkit-scrollbar{display:none}
+.kk-pill{flex:none;height:37px;padding:0 17px;border-radius:19px;border:1.5px solid #e3e3e6;display:flex;align-items:center;font-size:15.5px;color:#111;background:#fff;white-space:nowrap}
+.kk-pill.on{background:#1a1a1a;border-color:#1a1a1a;color:#fff}
+.kk-none{display:flex;flex-direction:column;align-items:center;text-align:center;padding:90px 30px 0;color:#8e8e93;gap:6px}
+.kk-none .ic{width:64px;height:64px;border-radius:22px;background:#f2f2f4;color:#c4c4c9;display:flex;align-items:center;justify-content:center;margin-bottom:10px}
+.kk-none .ic svg{width:34px;height:34px}
+.kk-none b{font-size:16px;color:#333;font-weight:600}
+.kk-none span{font-size:13.5px}
+.kspr{display:block;flex:none;background-image:url("./kk-ui.jpg");background-repeat:no-repeat}
+.ks-cards{display:flex;gap:9px;padding:0 16px 4px;overflow-x:auto;scrollbar-width:none}
+.ks-cards::-webkit-scrollbar{display:none}
+.ks-card{flex:none;border:1px solid #ececef;border-radius:14px;background:#f8f8f9;padding:12px 12px 12px}
+.ks-card b{display:flex;justify-content:space-between;gap:30px;font-size:14px;font-weight:600;color:#222;margin-bottom:9px}
+.ks-card b em{font-style:normal;font-weight:400;font-size:12.5px;color:#888}
+.ks-card .th{display:flex;gap:5px}
+.ks-card .kspr{border-radius:11px}
+.ks-h{display:flex;align-items:center;gap:7px;font-size:21px;font-weight:700;color:#111;padding:24px 16px 12px;letter-spacing:-.3px}
+.ks-h i{width:19px;height:19px;border-radius:50%;border:1.6px solid #999;color:#999;font-size:12px;font-style:normal;font-weight:700;display:flex;align-items:center;justify-content:center}
+.ks-pick{display:flex;gap:8px;padding:0 0 0 16px;overflow:hidden}
+.ks-pick .pk{border-radius:16px}
+.ks-acts{display:flex;justify-content:space-around;margin:12px 16px 0;padding:16px 4px 14px;border-radius:16px;background:#fff;box-shadow:0 1px 10px rgba(0,0,0,.05);border:1px solid #f0f0f2}
+.ks-act{display:flex;flex-direction:column;align-items:center;gap:7px;font-size:12.5px;color:#222}
+.km{background:#f5f5f7}
+.km-pay{display:flex;align-items:center;gap:10px;margin:2px 16px 0;height:52px;padding:0 16px;border-radius:16px;background:#fee500;font-size:14px;color:#222}
+.km-pay .lg{display:flex;align-items:center;gap:2px}
+.km-pay .lg b{font-size:17px;font-weight:800;letter-spacing:-.3px}
+.km-pay .amt{font-size:15px}
+.km-pay .sp{flex:1}
+.km-pay i{width:1px;height:14px;background:rgba(0,0,0,.15)}
+.km-grid{display:grid;grid-template-columns:repeat(4,1fr);row-gap:18px;margin:12px 16px 0;padding:22px 6px 14px;border-radius:16px;background:#fff}
+.km-it{display:flex;flex-direction:column;align-items:center;gap:7px;font-size:12.5px;color:#222}
+.km-dots{grid-column:1/-1;display:flex;justify-content:center;gap:5px;margin-top:2px}
+.km-dots i{width:5px;height:5px;border-radius:3px;background:#c8c8cc}
+.km-dots i.on{width:14px;background:#222}
+.km-ad{margin:12px 16px 0;border-radius:16px;background:#fff;overflow:hidden}
+.km-ad .ft{display:flex;align-items:center;justify-content:space-between;padding:12px 10px 12px 10px;border-top:1px solid #f0f0f2;font-size:14.5px;color:#222}
+.km-ad .ft em{font-style:normal;font-size:12.5px;border:1px solid #cfcfd3;padding:5px 9px}
+.km .ks-h{font-weight:500}
+[data-href]{cursor:pointer}
+.kk-head2 .ics>span{display:flex}
+
+/* ===== 앱 안 웹 브라우저 ===== */
+.view.wb{background:#fff}
+.wb-top{position:absolute;top:0;left:0;right:0;z-index:6;padding:var(--top) 8px 8px;display:flex;align-items:center;gap:6px;background:#fff;border-bottom:1px solid #ececef}
+.wb-top button{width:36px;height:36px;display:flex;align-items:center;justify-content:center;flex:none}
+.wb-url{flex:1;min-width:0;height:34px;border-radius:17px;background:#f2f2f4;display:flex;align-items:center;justify-content:center;gap:5px;font-size:14px;color:#222}
+.wb-url span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wb-url svg{color:#888}
+.wb-load{position:absolute;left:0;right:0;top:calc(var(--top) + 51px);height:2.5px;z-index:7;overflow:hidden}
+.wb-load i{display:block;height:100%;width:40%;background:#fee500;animation:wbl 1s ease-in-out infinite}
+.wb-load.done{display:none}
+@keyframes wbl{from{transform:translateX(-100%)}to{transform:translateX(260%)}}
+.wb-fr{position:absolute;left:0;right:0;bottom:0;top:calc(var(--top) + 51px);width:100%;height:calc(100% - var(--top) - 51px);border:0;background:#fff}

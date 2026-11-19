@@ -981,6 +981,29 @@
     body.addEventListener('pointercancel', function () { if (timer) { clearTimeout(timer); timer = null; } });
   }
 
+  /* 앱 안에서 웹페이지 열기 (카톡 인앱 브라우저 모양). 사이트가 막아서 안 보이면 ↗ 버튼으로 새 탭에서 열어요 */
+  function openExternal(url) {
+    var w = null;
+    try { w = window.open(url, '_blank', 'noopener'); } catch (x) {}
+    if (!w) { var t = document.createElement('a'); t.href = url; t.target = '_blank'; t.rel = 'noopener'; document.body.appendChild(t); t.click(); t.remove(); }
+  }
+  function openWeb(parent, url) {
+    var host = String(url).replace(/^https?:\/\//, '').replace(/\/.*$/, '');
+    var xIc = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2.200" stroke-linecap="round"><path d="M5 5l14 14M19 5L5 19"/></svg>';
+    var outIc = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 01-1 1H5a1 1 0 01-1-1V7a1 1 0 011-1h5"/></svg>';
+    var rfIc = '<svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2.200" stroke-linecap="round" stroke-linejoin="round"><path d="M19.500 12a7.500 7.500 0 11-2.200-5.300M19.500 4.500v4.500H15"/></svg>';
+    var v = pushView(parent, sbHtml('dark') +
+      '<div class="wb-top"><button type="button" class="wb-x" aria-label="닫기">' + xIc + '</button><div class="wb-url">' + I.lockSm.replace('width="22" height="22"', 'width="13" height="13"') + '<span>' + esc(host) + '</span></div>' +
+      '<button type="button" class="wb-rf" aria-label="새로고침">' + rfIc + '</button><button type="button" class="wb-out" aria-label="새 탭으로 열기">' + outIc + '</button></div>' +
+      '<div class="wb-load"><i></i></div><iframe class="wb-fr" src="' + esc(url) + '" referrerpolicy="no-referrer" allow="autoplay; fullscreen"></iframe>', 'wb');
+    var fr = qs(v, '.wb-fr'), ld = qs(v, '.wb-load');
+    fr.addEventListener('load', function () { ld.classList.add('done'); });
+    qs(v, '.wb-x').addEventListener('click', function () { popView(v); });
+    qs(v, '.wb-rf').addEventListener('click', function () { ld.classList.remove('done'); fr.src = url; });
+    qs(v, '.wb-out').addEventListener('click', function () { openExternal(url); });
+    return v;
+  }
+
   /* =========================================================
      카카오톡 앱
      ========================================================= */
@@ -1364,21 +1387,83 @@
     var main;
     layer.innerHTML = '<div class="kk" style="position:absolute;inset:0;background:#fff"><div id="kkMain"></div></div>';
     main = qs(layer, '#kkMain');
+    /* 하단 탭: 친구 / 채팅 / 지금 / 쇼핑 / 더보기 (새 카카오톡처럼 아이콘만) */
+    var TBI = {
+      friends: '<svg width="30" height="30" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="7.600" r="4.300"/><path d="M3.600 20.400c.6-4.500 4-7 8.400-7s7.800 2.500 8.400 7c.1.600-.3 1.100-.9 1.100H4.500c-.6 0-1-.5-.9-1.100z"/></svg>',
+      chats: '<svg width="30" height="30" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3C6.500 3 2 6.600 2 11.100c0 2.800 1.700 5.200 4.300 6.700-.2 1.300-.9 2.600-2 3.600 2.200-.1 4.100-1 5.500-2.100.7.100 1.400.2 2.200.2 5.500 0 10-3.600 10-8.100S17.500 3 12 3z"/></svg>',
+      now: '<svg width="32" height="30" viewBox="0 0 26 24" fill="currentColor"><path d="M15.500 4.500c4.400 0 8 2.900 8 6.500 0 2.100-1.200 4-3.100 5.200.2 1.100.8 2.100 1.600 2.900-1.900 0-3.400-.7-4.500-1.600-.6.100-1.300.2-2 .2"/><path d="M10.500 5C5.800 5 2 8.100 2 11.900c0 2.400 1.500 4.500 3.700 5.700-.2 1.100-.8 2.200-1.700 3.100 1.900-.1 3.500-.8 4.700-1.800.6.100 1.200.2 1.800.2 4.700 0 8.500-3.100 8.500-7.200S15.200 5 10.500 5z" stroke="#fff" stroke-width="1.300"/><path d="M8.600 9.200v5.400l4.600-2.700z" fill="#fff"/></svg>',
+      shop: '<svg width="30" height="30" viewBox="0 0 24 24" fill="currentColor"><path d="M8.300 8V6.700a3.700 3.700 0 017.400 0V8" fill="none" stroke="currentColor" stroke-width="2"/><path d="M5.200 8h13.600c.6 0 1 .4 1 1l.6 10.600c.1 1-.7 1.900-1.700 1.900H5.300c-1 0-1.800-.9-1.700-1.900L4.200 9c0-.6.400-1 1-1z"/></svg>',
+      more: '<svg width="30" height="30" viewBox="0 0 24 24" fill="currentColor"><circle cx="4.500" cy="12" r="2.100"/><circle cx="12" cy="12" r="2.100"/><circle cx="19.500" cy="12" r="2.100"/></svg>'
+    };
     function barHtml() {
       var u = totalUnread();
-      function t(id, ic, label, soonOnly) {
-        return '<button type="button" class="' + (tab === id ? 'on' : '') + '" data-t="' + id + '"' + (soonOnly ? ' data-soon="1"' : '') + '>' + ic + '<span>' + label + '</span>' + (id === 'chats' && u > 0 ? '<i class="bd">' + u + '</i>' : '') + '</button>';
+      function t(id) {
+        return '<button type="button" class="' + (tab === id ? 'on' : '') + '" data-t="' + id + '" aria-label="' + id + '">' + TBI[id] + (id === 'chats' && u > 0 ? '<i class="bd">' + u + '</i>' : '') + '</button>';
       }
-      return '<div class="kk-bar">' + t('friends', kic.tFriends, '친구') + t('chats', kic.tChat, '채팅') + t('open', kic.tOpen, '오픈채팅', true) + t('more', kic.tMore, '더보기', true) + '</div>';
+      return '<div class="kk-bar kk-bar2">' + t('friends') + t('chats') + t('now') + t('shop') + t('more') + '</div>';
     }
     function bindBar() {
       qsa(main, '.kk-bar button').forEach(function (b) {
         b.addEventListener('click', function () {
-          if (b.getAttribute('data-soon')) { soon(); return; }
           var t = b.getAttribute('data-t');
           if (t !== tab) { tab = t; render(); }
         });
       });
+    }
+    /* 카톡 쇼핑/더보기 그림 조각 (kk-ui.jpg 한 장에 모아 둔 것) */
+    var KUI = {"p1": [0, 0, 744, 1036], "p2": [746, 0, 390, 1036], "ad": [0, 1038, 1109, 555], "r1": [0, 1595, 140, 141], "r2": [142, 1595, 141, 141], "w1": [285, 1595, 140, 141], "w2": [427, 1595, 141, 141], "w3": [570, 1595, 141, 141], "ord": [713, 1595, 138, 137], "i1": [853, 1595, 102, 102], "i2": [957, 1595, 102, 102], "i3": [1061, 1595, 101, 102], "i4": [0, 1738, 102, 102], "i5": [104, 1738, 102, 102], "g00": [208, 1738, 101, 101], "g01": [311, 1738, 102, 101], "g02": [415, 1738, 102, 101], "g03": [519, 1738, 101, 101], "g10": [622, 1738, 101, 102], "g11": [725, 1738, 102, 102], "g12": [829, 1738, 102, 102], "g13": [933, 1738, 101, 102], "g20": [1036, 1738, 101, 102], "g21": [0, 1842, 102, 102], "g22": [104, 1842, 102, 102], "g23": [208, 1842, 101, 102]};
+    function spr(n, w, cls) {
+      var r = KUI[n], sc = w / r[2], h = Math.round(r[3] * sc);
+      return '<i class="kspr ' + (cls || '') + '" style="width:' + w + 'px;height:' + h + 'px;background-size:' + Math.round(1200 * sc) + 'px auto;background-position:-' + Math.round(r[0] * sc) + 'px -' + Math.round(r[1] * sc) + 'px"></i>';
+    }
+    function sprFull(n) {
+      var r = KUI[n];
+      return '<i class="kspr" style="width:100%;aspect-ratio:' + r[2] + '/' + r[3] + ';background-size:' + (1200 / r[2] * 100).toFixed(3) + '% auto;background-position:' + (r[0] / (1200 - r[2]) * 100).toFixed(3) + '% ' + (r[1] / (1944 - r[3]) * 100).toFixed(3) + '%"></i>';
+    }
+    function head(title, icons) { return '<div class="kk-head kk-head2"><h1>' + title + '</h1><div class="ics">' + icons.join('') + '</div></div>'; }
+    var kic2 = {
+      newOpen: '<svg width="27" height="27" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="1.900" stroke-linecap="round" stroke-linejoin="round"><path d="M11 6.500C6.800 6.500 3.500 9.100 3.500 12.400c0 2 1.200 3.700 3.100 4.800-.2.900-.7 1.800-1.400 2.500 1.600-.1 2.900-.7 3.900-1.500.6.100 1.200.2 1.900.2 4.200 0 7.500-2.700 7.500-6"/><path d="M14 5.500c3.600 0 6.500 2.300 6.500 5.300M18 2.500v5M15.500 5h5"/></svg>',
+      myBag: '<svg width="27" height="27" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="1.900" stroke-linejoin="round"><path d="M8.500 8V6.700a3.500 3.500 0 017 0V8"/><path d="M5 8h14l.8 12.500H4.200z"/><text x="12" y="17.300" text-anchor="middle" font-size="6.400" font-weight="900" fill="#111" stroke="none" font-family="Arial,Helvetica,sans-serif">MY</text></svg>',
+      scan: '<svg width="27" height="27" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2" stroke-linecap="round"><path d="M4 8.500V5.500A1.500 1.500 0 015.500 4h3M15.500 4h3A1.500 1.500 0 0120 5.500v3M20 15.500v3a1.500 1.500 0 01-1.500 1.500h-3M8.500 20h-3A1.500 1.500 0 014 18.500v-3M4 12h16"/></svg>'
+    };
+    function renderNow() {
+      main.innerHTML = sbHtml('dark') + head('지금', [kic.search, kic2.newOpen, kic.gear]) +
+        '<div class="kk-list kk-l2"><div class="kk-pills"><span class="kk-pill">숏폼</span><span class="kk-pill on">오픈채팅</span></div>' +
+        '<div class="kk-none"><div class="ic">' + TBI.now + '</div><b>참여 중인 오픈채팅방이 없어요</b><span>관심사가 같은 사람들과 대화를 시작해 보세요</span></div><div style="height:20px"></div></div>' + barHtml();
+      bindBar();
+    }
+    var KU = { store: 'https://store.kakao.com/', gift: 'https://gift.kakao.com/', live: 'https://shoppinglive.kakao.com/', makers: 'https://makers.kakao.com/', emo: 'https://e.kakao.com/', friends: 'https://store.kakao.com/kakaofriends' };
+    function lnk(k) { return ' data-href="' + KU[k] + '"'; }
+    main.addEventListener('click', function (e) {
+      var a = e.target.closest ? e.target.closest('[data-href]') : null;
+      if (!a) { return; }
+      openWeb(layer, a.getAttribute('data-href'));
+    });
+    function renderShop() {
+      var tabs = ['홈', '랭킹', '아모레특가', '아디다스쎈딜', '수능특가', '패션'].map(function (x, i) { return '<span class="kk-pill' + (i === 0 ? ' on' : '') + '"' + lnk('store') + '>' + x + '</span>'; }).join('');
+      var acts = [['i1', '선물하기', 'gift'], ['i2', '톡딜', 'store'], ['i3', '라이브쇼핑', 'live'], ['i4', '브랜드딜', 'store'], ['i5', 'FOR ME', 'store']].map(function (a) { return '<div class="ks-act"' + lnk(a[2]) + '>' + spr(a[0], 33) + '<span>' + a[1] + '</span></div>'; }).join('');
+      main.innerHTML = sbHtml('dark') + head('쇼핑', ['<span' + lnk('store') + '>' + kic.search + '</span>', '<span' + lnk('store') + '>' + kic2.myBag + '</span>', kic.gear]) +
+        '<div class="kk-list kk-l2"><div class="kk-pills hs">' + tabs + '</div>' +
+        '<div class="ks-cards hs"><div class="ks-card"' + lnk('store') + '><b>최근 본 상품</b><div class="th">' + spr('r1', 45) + spr('r2', 45) + '</div></div>' +
+        '<div class="ks-card"' + lnk('store') + '><b>찜한 상품<em>더보기 ›</em></b><div class="th">' + spr('w1', 45) + spr('w2', 45) + spr('w3', 45) + '</div></div>' +
+        '<div class="ks-card"' + lnk('store') + '><b>주문내역</b><div class="th">' + spr('ord', 44) + '</div></div></div>' +
+        '<h2 class="ks-h">오늘의 PICK <i>i</i></h2>' +
+        '<div class="ks-pick"' + lnk('store') + '>' + spr('p1', 240, 'pk') + spr('p2', 126, 'pk') + '</div>' +
+        '<div class="ks-acts">' + acts + '</div><div style="height:30px"></div></div>' + barHtml();
+      bindBar();
+    }
+    function renderMore() {
+      var labels = [['선물하기', '받은선물', '톡딜', '이모티콘'], ['라이브쇼핑', '메이커스', '프렌즈', 'AI국민비서'], ['모바일신분증', '톡클라우드', '캘린더', '예약하기']];
+      var gl = { '선물하기': 'gift', '받은선물': 'gift', '톡딜': 'store', '이모티콘': 'emo', '라이브쇼핑': 'live', '메이커스': 'makers', '프렌즈': 'friends' };
+      var grid = labels.map(function (row, r) { return row.map(function (l, c) { return '<div class="km-it"' + (gl[l] ? lnk(gl[l]) : '') + '>' + spr('g' + r + c, 33) + '<span>' + l + '</span></div>'; }).join(''); }).join('');
+      var pay = (C.KAKAO && C.KAKAO.PAY) || '10,000원';
+      main.innerHTML = sbHtml('dark') + head('더보기', [kic.search, kic2.scan, '<span class="kk-dot">' + kic.gear + '</span>']) +
+        '<div class="kk-list kk-l2 km"><div class="kk-pills"><span class="kk-pill on">홈</span><span class="kk-pill">지갑</span></div>' +
+        '<div class="km-pay"><span class="lg"><svg width="16" height="15" viewBox="0 0 24 22" fill="#111"><path d="M12 1C5.900 1 1 4.900 1 9.800c0 3 1.900 5.700 4.800 7.300-.2 1.300-.9 2.700-2 3.700 2.400-.1 4.500-1.100 6-2.300.7.100 1.400.2 2.200.2 6.100 0 11-3.900 11-8.900S18.100 1 12 1z"/></svg><b>pay</b></span><span class="amt">' + esc(pay) + '</span><span class="sp"></span><span>송금</span><i></i><span>자산</span><i></i><span>결제</span></div>' +
+        '<div class="km-grid">' + grid + '<div class="km-dots"><i class="on"></i><i></i><i></i></div></div>' +
+        '<div class="km-ad">' + sprFull('ad') + '<div class="ft"><span>케이스티파이 리플 케이스</span><em>구매하기</em></div></div>' +
+        '<h2 class="ks-h">카카오 나우</h2><div style="height:30px"></div></div>' + barHtml();
+      bindBar();
     }
     function friendsSorted() {
       return K.FRIENDS.slice().sort(function (a, b) { return a.localeCompare(b, 'ko'); });
@@ -1388,7 +1473,7 @@
         return '<div class="kk-row" data-f="' + esc(n) + '">' + avK(46, n) + '<div class="nm">' + esc(n) + '</div></div>';
       }).join('');
       main.innerHTML = sbHtml('dark') +
-        '<div class="kk-head"><h1>친구</h1><div class="ics">' + kic.search + kic.add + kic.music + kic.gear + '</div></div>' +
+        '<div class="kk-head kk-head2"><h1>친구</h1><div class="ics">' + kic.search + kic.add + kic.music + kic.gear + '</div></div>' +
         '<div class="kk-list"><div class="kk-row me" data-me="1">' + avK(54, '__me') + '<div class="nm"><b>' + esc(fullName()) + '</b></div></div>' +
         '<div class="kk-sec">친구 ' + K.FRIENDS.length + '<span>' + '﹀' + '</span></div>' + rows + '<div style="height:20px"></div></div>' + barHtml();
       bindBar();
@@ -1414,7 +1499,7 @@
           '<div class="rt"><span class="tm">' + esc(listTime(r.last)) + '</span>' + (u > 0 ? '<i class="bd">' + u + '</i>' : '') + '</div></div>';
       }).join('');
       main.innerHTML = sbHtml('dark') +
-        '<div class="kk-head"><h1>채팅</h1><div class="ics">' + kic.search + kic.newchat + kic.gear + '</div></div>' +
+        '<div class="kk-head kk-head2"><h1>채팅</h1><div class="ics">' + kic.search + kic.newchat + kic.gear + '</div></div>' +
         '<div class="kk-list">' + (rows || '<div class="kk-empty">채팅방이 없어요</div>') + '<div style="height:20px"></div></div>' + barHtml();
       bindBar();
       qsa(main, '.kk-row[data-f]').forEach(function (r) {
@@ -1422,7 +1507,7 @@
       });
     }
     function listRefresh() { if (!qs(layer, '.kr')) { render(); } }
-    function render() { if (tab === 'friends') { renderFriends(); } else { renderChats(); } }
+    function render() { if (tab === 'friends') { renderFriends(); } else if (tab === 'now') { renderNow(); } else if (tab === 'shop') { renderShop(); } else if (tab === 'more') { renderMore(); } else { renderChats(); } }
     function openProfile(name, isMe) {
       var key = isMe ? '__me' : name;
       var v = pushView(layer, sbHtml('light') +
@@ -2507,7 +2592,7 @@
           return '<div class="qt">' + xav(q.avatar) + '<div style="flex:1;min-width:0"><div class="hd" style="display:flex;gap:4px;font-size:15px"><b>' + esc(q.name) + '</b><span style="color:#536471">@' + esc(q.handle) + ' · ' + esc(q.age || '') + '</span></div>' +
             '<div class="tx" style="font-size:15px;line-height:20px;margin-top:2px;white-space:pre-wrap">' + rich(q.text) + '</div>' +
             '<div class="emb"><div class="ee"><div class="hd"><b>' + esc(t6.name) + '</b><span>@' + esc(t6.handle) + ' · ' + esc(t6.age) + '</span></div><p>' + rich(t6.text) + '</p>' + (mini ? '<div class="mini">' + mini + '</div>' : '') + '</div></div>' +
-            '<div class="acts"><span class="a">' + I.reply + '</span><span class="a">' + I.repost + '</span><span class="a">' + I.like + '</span><span class="a">' + I.views + '</span><span class="a">' + I.bm + '</span><span class="a">' + I.shr + '</span></div></div></div>';
+            '<div class="acts"><span class="a">' + I.reply + '</span><span class="a">' + I.repost + (q.rt ? '<span>' + compact(q.rt) + '</span>' : '') + '</span><span class="a">' + I.like + (q.like ? '<span>' + compact(q.like) + '</span>' : '') + '</span><span class="a">' + I.views + (q.views ? '<span>' + compact(q.views) + '</span>' : '') + '</span><span class="a">' + I.bm + '</span><span class="a">' + I.shr + '</span></div></div></div>';
         }).join('');
       }
       function repostsHtml() {
