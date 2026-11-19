@@ -1174,3 +1174,12 @@ svg{display:block}
 .kc-b:active{background:#fff8bf}
 .kc-b.sil{border-color:#d6dbe1;color:#6b7684;font-style:normal}
 .kr.chon .kr-body{padding-bottom:calc(90px + 150px)}
+
+/* 선택지: 대화 가리지 않게 아래쪽에 반투명 배경 + 조금 작게 */
+.kc-ch{background:linear-gradient(rgba(178,199,218,0),rgba(178,199,218,.96) 18px);padding-top:18px;gap:6px}
+.kc-b{padding:9px 14px;font-size:14.5px;border-radius:16px}
+
+/* 다음 날로 넘어갈 때 */
+.nd-ov{position:absolute;inset:0;z-index:500;background:#000;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .8s ease;pointer-events:none}
+.nd-ov.on{opacity:1;pointer-events:auto}
+.nd-ov .t{color:#fff;font-size:20px;font-weight:600;letter-spacing:.5px}

@@ -74,7 +74,10 @@
   if (!C.INSTA) { C.INSTA = IG_DEF; }
   /* 게임 속 날짜(TODAY)와 시작 시각(TIME) */
   var TD = (function () { var a = String(C.TODAY).split('-'); return [parseInt(a[0], 10), parseInt(a[1], 10), parseInt(a[2], 10)]; })();
-  if (!C.DATE) { C.DATE = TD[1] + '월 ' + TD[2] + '일 ' + ['일', '월', '화', '수', '목', '금', '토'][new Date(TD[0], TD[1] - 1, TD[2]).getDay()] + '요일'; }
+  var BASE_TD = TD.slice();
+  function makeDate() { return TD[1] + '월 ' + TD[2] + '일 ' + ['일', '월', '화', '수', '목', '금', '토'][new Date(TD[0], TD[1] - 1, TD[2]).getDay()] + '요일'; }
+  var DATE_AUTO = !C.DATE;
+  if (!C.DATE) { C.DATE = makeDate(); }
   var START_T = (function () { var m = String(C.TIME || '8:00').match(/(\d+):(\d+)/); return m ? (m[1].length < 2 ? '0' : '') + m[1] + ':' + m[2] : '08:00'; })();
   if (!C.KAKAO.ROOMS) { C.KAKAO.ROOMS = {}; }
   if (!C.KAKAO.FRIENDS) { C.KAKAO.FRIENDS = []; }
@@ -234,9 +237,10 @@
   /* ---------- 디데이 (기념일) ---------- */
   function ddInfo() {
     var D = C.DDAY; if (!D || !D.partner) { return null; }
-    var days = parseInt(D.days, 10) || 100;
+    var base = parseInt(D.days, 10) || 100;
     var today = new Date(TD[0], TD[1] - 1, TD[2]);
-    var start = new Date(TD[0], TD[1] - 1, TD[2] - (days - 1));
+    var start = new Date(BASE_TD[0], BASE_TD[1] - 1, BASE_TD[2] - (base - 1));
+    var days = Math.round((today - start) / 86400000) + 1;
     return { partner: D.partner, days: days, today: today, start: start, photo: D.photo || '' };
   }
   function ddFmt(d, sep) { sep = sep || '.'; return d.getFullYear() + sep + pad2(d.getMonth() + 1) + sep + pad2(d.getDate()); }
@@ -495,7 +499,7 @@
     if (!window.__kkFlowStarted) { window.__kkFlowStarted = true; setTimeout(kkRunAll, 1200); }
     bindLockNotifs(); lockDense();
     (function () {
-      var dd = ddInfo(); if (!dd) { return; }
+      var dd = ddInfo(); if (!dd || dd.days !== (parseInt(C.DDAY.days, 10) || 100)) { return; }
       setTimeout(function () {
         if (current !== 'lock' || !L.lock) { return; }
         var box = qs(L.lock, '.notifs'); if (!box || qs(box, '.notif[data-dd]')) { return; }
@@ -757,7 +761,7 @@
       '<div class="st-foot">켜면 X 쪽지와 인스타그램 알림이 오지 않아요.</div>' +
       grp(G1) + grp(G2) + grp(G3) +
       '<div class="st-grp"><button type="button" class="st-row st-reset" id="stReset">처음부터 다시 하기</button></div>' +
-      '<div style="text-align:center;color:#aeaeb2;font-size:12px;padding:6px 0 30px">버전 17</div></div></div>';
+      '<div style="text-align:center;color:#aeaeb2;font-size:12px;padding:6px 0 30px">버전 24</div></div></div>';
     var iL = qs(layer, '#stLast'), iF = qs(layer, '#stFirst'), iI = qs(layer, '#stIg');
     qs(layer, '#stNotif').addEventListener('click', function () {
       setNotifOff(!notifOff);
@@ -1255,6 +1259,74 @@
     (Array.isArray(f) ? f : [f]).forEach(function (x) { if (x) { KK_FLAGS[x] = true; } });
     setTimeout(function () { Object.keys(KK_SCRIPT).forEach(function (n) { if (kkS[n]) { kkRun(n); } }); }, 0);
   }
+  /* 세 카톡이 모두 끝나면(남은 단계가 '저녁 기다리기'뿐이면) 잠시 뒤 폰 시간을 저녁으로 돌리고 '저녁' 표시를 남겨요 */
+  var EVE_T = null;
+  function kkCheckEvening() {
+    if (EVE_T || KK_FLAGS['저녁']) { return; }
+    var names = Object.keys(KK_SCRIPT); if (!names.length) { return; }
+    var all = names.every(function (n) {
+      var st = kkS[n]; if (!st || st.busy) { return false; }
+      var h = st.q[0]; return !h || (h.need && String(h.need) === '저녁');
+    });
+    if (!all) { return; }
+    EVE_T = setTimeout(function () { setGameClock(C.EVENING_TIME || '21:40'); kkSetFlags('저녁'); setTimeout(kkCheckNextDay, 300); }, C.EVENING_DELAY || 150000);
+  }
+  /* 저녁 대화까지 다 끝나면(또는 저녁 대화가 없으면) 다음 날 새벽으로 넘어가요 */
+  var NEXT_T = null;
+  function kkCheckNextDay() {
+    if (NEXT_T || !KK_FLAGS['저녁'] || KK_FLAGS['다음날'] || !C.DAY2) { return; }
+    var names = Object.keys(KK_SCRIPT);
+    var all = names.every(function (n) {
+      var st = kkS[n]; if (!st) { return true; } if (st.busy) { return false; }
+      var h = st.q[0]; return !h || (h.need && String(h.need) === '다음날');
+    });
+    if (!all) { return; }
+    NEXT_T = setTimeout(goNextDay, C.DAY2.DELAY || 15000);
+  }
+  function altIds(seed, n) {
+    var Lt = 'abcdefghijklmnopqrstuvwxyz', Dg = '0123456789', out = [], seen = {};
+    function rnd(k) { seed = (seed * 1103515245 + 12345) % 2147483648; return Math.floor(seed / 65536) % k; }
+    function pick(set, k) { var o = ''; for (var i = 0; i < k; i++) { o += set.charAt(rnd(set.length)); } return o; }
+    while (out.length < n) {
+      var t = rnd(4), u;
+      if (t === 0) { u = 'user' + pick(Dg, 8); } else if (t === 1) { u = pick(Lt, 1) + pick(Dg, 7); } else if (t === 2) { u = 'user_' + pick(Dg, 7); } else { u = pick(Lt, 1) + '_' + pick(Dg, 7); }
+      if (!seen[u]) { seen[u] = 1; out.push(u); }
+    }
+    return out;
+  }
+  function goNextDay() {
+    var D2 = C.DAY2; if (!D2 || KK_FLAGS['다음날']) { return; }
+    /* 날짜·시간 */
+    var nd = new Date(TD[0], TD[1] - 1, TD[2] + 1);
+    TD[0] = nd.getFullYear(); TD[1] = nd.getMonth() + 1; TD[2] = nd.getDate();
+    C.TODAY = TD[0] + '-' + pad2(TD[1]) + '-' + pad2(TD[2]); KK_DATE = C.TODAY;
+    if (DATE_AUTO || D2.DATE) { C.DATE = D2.DATE || makeDate(); }
+    setGameClock(D2.TIME || '03:12');
+    /* X: 추천 타임라인 교체, 알계 팔로우 알림, 협박 쪽지 */
+    if (D2.TWEETS) { C.TWEETS = D2.TWEETS; }
+    var ids = altIds(20261025, 80), no = [], k = 0, mins = ['방금', '방금', '1분', '1분', '2분', '3분', '3분', '4분', '5분', '6분', '8분', '9분', '11분', '13분', '15분', '18분', '21분', '25분'];
+    mins.forEach(function (tm, i) { var c = 1 + (i % 3); no.push({ who: ids.slice(k, k + c), more: i % 2 ? 0 : 7 + (i * 13) % 40, time: tm }); k += c; });
+    C.NOTIS = D2.NOTIS || no; notiOpen = false;
+    if (D2.X_FOLLOWERS !== undefined) { C.X_FOLLOWERS = D2.X_FOLLOWERS; }
+    if (D2.DMS) {
+      C.DMS = D2.DMS.map(function (d) { var o = {}; for (var x in d) { o[x] = d[x]; } return o; });
+      DM_PRE = 0; while (DM_PRE < C.DMS.length && !C.DMS[DM_PRE].live) { DM_PRE++; }
+      dmArrived = DM_PRE; dmStarted = false; dmRead = {};
+    }
+    /* 인스타 팔로우 요청 */
+    if (D2.IG_REQ_POPS !== undefined) { C.IG_REQ_POPS = D2.IG_REQ_POPS; igPopN = 0; IG_RQ = null; }
+    if (D2.DM_GAP_MIN) { C.DM_GAP_MIN = D2.DM_GAP_MIN; } if (D2.DM_GAP_MAX) { C.DM_GAP_MAX = D2.DM_GAP_MAX; }
+    KK_FLAGS['다음날'] = true;
+    /* 화면: 바로 새벽 잠금화면으로 */
+    if (L.app) { try { if (appCleanup) { appCleanup(); } } catch (e) {} appCleanup = null; L.app = null; curApp = null; }
+    L.home = null; showLock();
+    kkSetFlags('다음날');
+  }
+  function setGameClock(hhmm) {
+    var m = String(hhmm).match(/(\d+):(\d+)/); if (!m) { return; }
+    CLOCK_BASE = parseInt(m[1], 10) * 60 + parseInt(m[2], 10); CLOCK0 = Date.now();
+    var t = clockStr(); qsa(phone, '.clk').forEach(function (n) { n.textContent = t; });
+  }
   function kkRunAll() { Object.keys(KK_SCRIPT).forEach(function (n) { kkRun(n); }); }
   function kkRun(name) {
     var st = kkState(name); if (!st || st.busy) { return; }
@@ -1282,6 +1354,8 @@
       return;
     }
     kkUiField(name);
+    kkCheckEvening();
+    kkCheckNextDay();
   }
   function kkSent(name) { var st = kkState(name); if (!st) { return; } var s0 = st.q[0]; if (s0 && s0.me) { st.q.shift(); if (s0.set) { kkSetFlags(s0.set); } } kkRun(name); }
   function kkPick(name, i) {
@@ -1686,13 +1760,20 @@
         syncSend();
         if (stp && stp.choice) {
           kbHide();
+          var vis = []; stp.choice.forEach(function (c, i) { if (kkOk(c)) { vis.push(i); } });
+          if (stp.autoOne && vis.length === 1) {          /* 고를 게 하나뿐이면 바로 넘어가기 */
+            chBox.classList.remove('on'); chBox.innerHTML = ''; v.classList.remove('chon');
+            setTimeout(function () { kkPick(name, vis[0]); }, 500);
+            return;
+          }
           chBox.innerHTML = stp.choice.map(function (c, i) { return kkOk(c) ? '<button type="button" class="kc-b' + (c.silent ? ' sil' : '') + '" data-i="' + i + '">' + esc(fillName(c.label)) + '</button>' : ''; }).join('');
           chBox.classList.add('on'); v.classList.add('chon');
+          requestAnimationFrame(function () { body.style.paddingBottom = (chBox.offsetHeight + 84) + 'px'; scroll(); setTimeout(scroll, 260); });
           qsa(chBox, '.kc-b').forEach(function (b) {
             b.addEventListener('click', function () { chBox.classList.remove('on'); chBox.innerHTML = ''; kkPick(name, parseInt(b.getAttribute('data-i'), 10)); });
           });
           scroll();
-        } else { chBox.classList.remove('on'); chBox.innerHTML = ''; v.classList.remove('chon'); }
+        } else { chBox.classList.remove('on'); chBox.innerHTML = ''; v.classList.remove('chon'); body.style.paddingBottom = ''; }
         if (stp && stp.me && startAuto && !typing && !inp.value) { setTimeout(startAuto, 650); }
       }
       if (st) {
@@ -2077,7 +2158,7 @@
       if (p === '{NAME}') { return esc(USER.name); }
       if (p === '{FULL}') { return esc(fullName()); }
       if (p === '{LAST}') { return esc(USER.last || ''); }
-      return esc(p);
+      return esc(p).replace(/(^|\s)(#[^\s#]+)/g, '$1<span class="mention">$2</span>');
     }).join('');
   }
   function unreadCount() {
@@ -2193,7 +2274,7 @@
     var n = (C.NOTIS || [])[0];
     if (!n) { return ''; }
     var who = n.who[0] + (n.more > 0 ? '님 외 ' + n.more + '명이' : '님이');
-    return '<div class="notif"><div class="ic">' + ICO.x + '</div><div class="tx"><b>알림</b><span>' + esc(who) + ' 회원님을 팔로우했습니다</span></div><div class="tm">07:58</div></div>';
+    return '<div class="notif"><div class="ic">' + ICO.x + '</div><div class="tx"><b>알림</b><span>' + esc(who) + ' 회원님을 팔로우했습니다</span></div><div class="tm">' + (KK_FLAGS['다음날'] ? '방금' : '07:58') + '</div></div>';
   }
   function lockDense() {
     lockScrollMode();
@@ -2292,7 +2373,7 @@
     function step() {
       dmArrived++;
       var d = C.DMS[dmArrived - 1];
-      if (String(d.time) >= START_T) { d.time = clockHHMM(); }
+      if (d.live || String(d.time) >= START_T) { d.time = clockHHMM(); }
       if (current === 'lock') { addLockNotif(d); }
       else if (!(xCtx && xCtx.tab === 'dm')) { bannerShow(d); }
       /* 배너가 올라오는 동안에는 무거운 갱신을 미루어 끊기지 않게 해요 */
@@ -2318,7 +2399,8 @@
   function igReqIds() {
     if (IG_RQ) { return IG_RQ; }
     var cfg = C.INSTA && C.INSTA.requests;
-    if (cfg) { IG_RQ = cfg.slice(); return IG_RQ; }
+    if (cfg && cfg.length) { IG_RQ = cfg.slice(); return IG_RQ; }
+    if (cfg && !cfg.length && !KK_FLAGS['다음날']) { IG_RQ = []; return IG_RQ; }
     var seed = 20261029, L = 'abcdefghijklmnopqrstuvwxyz', D = '0123456789';
     function rnd(n) { seed = (seed * 1103515245 + 12345) % 2147483648; return Math.floor(seed / 65536) % n; }
     function pick(set, n) { var o = ''; for (var i = 0; i < n; i++) { o += set.charAt(rnd(set.length)); } return o; }
