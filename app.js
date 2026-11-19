@@ -762,7 +762,7 @@
       grp(G1) + grp(G2) + grp(G3) +
       '<div id="stSkipBox"></div>' +
       '<div class="st-grp"><button type="button" class="st-row st-reset" id="stReset">처음부터 다시 하기</button></div>' +
-      '<div style="text-align:center;color:#aeaeb2;font-size:12px;padding:6px 0 30px">버전 28</div></div></div>';
+      '<div style="text-align:center;color:#aeaeb2;font-size:12px;padding:6px 0 30px">버전 29</div></div></div>';
     var iL = qs(layer, '#stLast'), iF = qs(layer, '#stFirst'), iI = qs(layer, '#stIg');
     qs(layer, '#stNotif').addEventListener('click', function () {
       setNotifOff(!notifOff);
@@ -1275,7 +1275,7 @@
   function kkSetFlags(f) {
     if (!f) { return; }
     (Array.isArray(f) ? f : [f]).forEach(function (x) { if (x) { KK_FLAGS[x] = true; } });
-    setTimeout(function () { Object.keys(KK_SCRIPT).forEach(function (n) { if (kkS[n]) { kkRun(n); } }); }, 0);
+    setTimeout(function () { Object.keys(KK_SCRIPT).forEach(function (n) { var f0 = KK_SCRIPT[n][0]; if (kkS[n] || (f0 && f0.need && kkHasAll(f0.need))) { kkRun(n); } }); }, 0);
   }
   /* 세 카톡이 모두 끝나면(남은 단계가 '저녁 기다리기'뿐이면) 잠시 뒤 폰 시간을 저녁으로 돌리고 '저녁' 표시를 남겨요 */
   /* 기다렸다가 오는 카톡(wait) 목록 — 설정에서 '카톡 바로 받기'로 당겨올 수 있어요 */
