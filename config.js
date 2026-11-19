@@ -101,6 +101,11 @@ window.CONFIG = {
       spin: { q: "쿠야 신유 추천 차돌수육 어땠어 맛있어?", a: "" },
       like: 3102, rt: 432, views: 61207, bm: 55, detailTime: "오전 1:58", quotes: [] }
   ],
+  // X 검색에 진짜 트윗 끼워 넣기: 검색어에 match 단어가 들어가면 결과 맨 위에 보여줘요
+  // posts: 트윗 링크 (예: "https://x.com/TWS_PLEDIS/status/123..."), account: 계정 타임라인 (로그인한 사람만 보일 수 있어요)
+  X_EMBEDS: [
+    { match: ["투어스", "tws"], account: "TWS_PLEDIS", posts: [] }
+  ],
   // 인용 예시: quotes: [ { name: "닉네임", handle: "아이디", age: "1시간", avatar: "", text: "인용 내용" } ]
   // X 쪽지. time 이 시작 시각(TIME)보다 이르면 이미 와 있던 쪽지, 늦으면 게임 중에 차례로 도착해요
   DMS: [

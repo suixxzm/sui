@@ -417,8 +417,9 @@
     current = 'start';
     clearLayers();
     setHB('off');
-    var s = el('<section class="layer start fade-in"><div class="card">' +
-      '<p class="sub">시작하기 전에 알려주세요</p>' +
+    var s = el('<section class="layer start s2 fade-in"><div class="card">' +
+      '<div class="s2-badge">♡</div><h1 class="s2-tt">나의 프로필</h1>' +
+      '<p class="sub">게임에서 쓸 이름과 아이디를 적어주세요</p>' +
       '<div class="row2"><label>성<input id="inLast" maxlength="4" autocomplete="off" placeholder="성"></label>' +
       '<label>이름<input id="inName" maxlength="8" autocomplete="off" placeholder="이름"></label></div>' +
       '<label>인스타그램 아이디<div class="at"><span>@</span><input id="inIg" maxlength="30" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="instagram_id"></div></label>' +
@@ -2331,52 +2332,59 @@
         '<div class="ex-list">' + rows + '</div>' + barHtml();
       bindBar();
       qsa(base, '.trd').forEach(function (r) {
-        r.addEventListener('click', function () { realSearch(r.getAttribute('data-q')); });
+        r.addEventListener('click', function () { openResults(r.getAttribute('data-q')); });
       });
       var f = qs(base, '#exForm'), q = qs(base, '#exQ');
-      if (!rows) { qs(base, '.ex-list').innerHTML = '<div class="ex-hint">검색어를 입력하면 X에서 실제 검색 결과가 열려요</div>'; }
       try { q.focus(); } catch (e) {}
       f.addEventListener('submit', function (e) {
         e.preventDefault();
         var term = String(q.value || '').replace(/^\s+|\s+$/g, '');
         if (!term) { return; }
         q.blur();
-        realSearch(term);
+        openResults(term);
       });
     }
-    /* 검색하면 진짜 X(트위터) 검색 결과가 새 탭으로 열려요 */
-    function realSearch(term) {
-      var url = 'https://x.com/search?q=' + encodeURIComponent(term) + '&src=typed_query';
-      var w = null;
-      try { w = window.open(url, '_blank', 'noopener'); } catch (e) {}
-      if (!w) { var a = document.createElement('a'); a.href = url; a.target = '_blank'; a.rel = 'noopener'; document.body.appendChild(a); a.click(); a.remove(); }
+    /* 진짜 X 게시물/타임라인 끼워 넣기: config.js 의 X_EMBEDS 에서 검색어(match)에 맞는 것을 결과 맨 위에 보여줘요 */
+    function embedHtml(term) {
+      var t = String(term).toLowerCase(), out = '';
+      (C.X_EMBEDS || []).forEach(function (e) {
+        var hit = (e.match || []).some(function (m) { return m && t.indexOf(String(m).toLowerCase()) !== -1; });
+        if (!hit) { return; }
+        (e.posts || []).forEach(function (u) {
+          if (u) { out += '<div class="x-emb-post"><blockquote class="twitter-tweet" data-lang="ko" data-dnt="true"><a href="' + esc(String(u).replace('://x.com/', '://twitter.com/')) + '"></a></blockquote></div>'; }
+        });
+        if (e.account) {
+          out += '<div class="x-emb-tl"><a class="twitter-timeline" data-lang="ko" data-dnt="true" data-height="640" data-chrome="noheader nofooter" href="https://twitter.com/' + esc(String(e.account).replace(/^@/, '')) + '">@' + esc(String(e.account).replace(/^@/, '')) + ' 게시물</a></div>';
+        }
+      });
+      return out ? '<div class="x-emb">' + out + '</div>' : '';
     }
-
-    /* 검색 결과: 가상 기사 링크가 걸린 게시물 목록. 카드를 누르면 사파리에 넣어둔 가상 기사가 열려요 */
-    function openResults(term, hit) {
-      var handles = ['dailystar_news', 'yeonyetalk_kr', 'newswave_live', 'dailystar_news', 'yeonyetalk_kr'];
-      var colors = ['#1d3557', '#8d5a97', '#2a7f62', '#b5483a', '#5a6b7b'];
-      var posts = C.NEWS.map(function (n, i) {
-        var age = String(n.time).replace(/\s*전$/, '');
-        var big = i % 2 === 0;
-        var dom = (handles[i % handles.length] || 'news').replace('_', '-') + '.invalid';
-        var card = big
-          ? '<div class="lc big" data-i="' + i + '"><div class="im">' + imgTag(n.img) + '<span class="cap">' + esc(n.title) + '</span></div></div><div class="dom">출처: ' + esc(dom) + '</div>'
-          : '<div class="lc row" data-i="' + i + '"><div class="im">' + imgTag(n.img) + '</div><div class="tx"><b>' + esc(n.title) + '</b><span>' + esc(dom) + '</span></div></div>';
-        return '<article class="srp"><div class="pa" style="background:' + colors[i % colors.length] + '">' + esc(String(n.press).charAt(0)) + '</div>' +
-          '<div class="pb"><div class="hd"><b>' + esc(n.press) + '</b><span>@' + esc(handles[i % handles.length]) + ' · ' + esc(age) + '</span></div>' +
-          '<div class="pt">' + esc(n.title) + ' (출처: ' + esc(n.press) + ')</div>' + card +
-          '<div class="acts"><span class="a">' + I.reply + '</span><span class="a">' + I.repost + '</span><span class="a">' + I.like + '</span><span class="a">' + I.views + '<span>' + (3 + i * 2) + '</span></span><span class="a">' + I.bm + '</span><span class="a">' + I.shr + '</span></div></div></article>';
-      }).join('');
+    function loadXWidgets(el) {
+      function go() { try { window.twttr.widgets.load(el); } catch (e) {} }
+      if (window.twttr && window.twttr.widgets) { go(); return; }
+      var sc = document.querySelector('script[data-xw]');
+      if (!sc) {
+        sc = document.createElement('script');
+        sc.src = 'https://platform.twitter.com/widgets.js'; sc.async = true; sc.charset = 'utf-8'; sc.setAttribute('data-xw', '1');
+        document.head.appendChild(sc);
+      }
+      sc.addEventListener('load', go);
+    }
+    /* 검색 결과: 게임 속 트윗 중에서 검색어가 들어간 게시물을 X 검색 화면처럼 보여줘요 */
+    function openResults(term) {
+      var words = String(term).toLowerCase().split(/\s+/).filter(function (w) { return w; });
+      var found = C.TWEETS.filter(function (t) {
+        var hay = [t.name, t.handle, t.text, t.spin ? t.spin.q : '', t.spin ? t.spin.a : ''].join(' ').toLowerCase();
+        return words.every(function (w) { return hay.indexOf(w) !== -1; });
+      });
       var v = pushView(root, sbHtml('dark') +
         '<div class="sr-top"><div class="r1"><button type="button" class="back" style="color:#0f1419">' + I.back + '</button><div class="sbx">' + I.search + '<span class="q">' + esc(term) + '</span></div><span class="mo">···</span></div>' +
         '<div class="tabs"><span class="on"><em>인기</em></span><span><em>최신</em></span><span><em>사용자</em></span><span><em>미디어</em></span><span><em>리스트</em></span></div></div>' +
-        '<div class="sr-list">' + (hit ? posts : '<div class="act-empty"><h2>"' + esc(term) + '"에 대한 결과 없음</h2><p>철자를 확인하거나 다른 검색어를 입력해 보세요.</p></div>') + '</div>', 'xa');
+        '<div class="sr-list">' + embedHtml(term) + (found.length ? found.map(tweetHtml).join('') : (embedHtml(term) ? '' : '<div class="act-empty"><h2>"' + esc(term) + '"에 대한 결과 없음</h2><p>철자를 확인하거나 다른 검색어를 입력해 보세요.</p></div>')) + '<div style="height:40px"></div></div>', 'xa');
       v.style.background = '#fff';
       qs(v, '.back').addEventListener('click', function () { popView(v); });
-      qsa(v, '.lc').forEach(function (c) {
-        c.addEventListener('click', function () { openArticle(root, C.NEWS[parseInt(c.getAttribute('data-i'), 10)]); });
-      });
+      bindFeed(v);
+      var em = qs(v, '.x-emb'); if (em) { loadXWidgets(em); }
     }
     function renderNoti() {
       notiOpen = true;

@@ -1074,3 +1074,24 @@ svg{display:block}
 .spp-q{min-height:0}
 .ex-hint{padding:28px 20px;text-align:center;color:#536471;font-size:15px}
 .ex-top .sbx{min-width:0}
+.x-emb{padding:8px 12px 4px;border-bottom:1px solid #eff3f4}
+.x-emb-post{display:flex;justify-content:center}
+.x-emb-post .twitter-tweet{margin:6px auto!important}
+.x-emb-tl{margin:6px 0}
+
+/* ===== 시작 화면 (새 디자인: 핑크 도트 + 연두 포인트) ===== */
+.start.s2{background-color:#fbe3f0;color:#5b4a52;padding:0 30px}
+.start.s2 .card{position:relative;padding:44px 22px 24px;border-radius:30px;background:#fff;border:2px dashed #b9e4a6;box-shadow:0 8px 0 #cfeebd,0 18px 40px rgba(150,190,130,.18)}
+.s2-badge{position:absolute;top:-26px;left:50%;margin-left:-26px;width:52px;height:52px;border-radius:50%;background:#c6edb2;border:3px solid #fff;color:#fff;font-size:24px;font-weight:800;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(120,170,100,.3)}
+.s2-tt{text-align:center;font-size:22px;font-weight:800;color:#6aa956;letter-spacing:-.3px;margin:0 0 6px}
+.start.s2 .sub{margin:0 0 24px;color:#b08a9f;font-size:13.5px}
+.start.s2 label{font-size:12.5px;font-weight:700;color:#8cbf78;margin-bottom:18px}
+.start.s2 input{margin-top:4px;padding:10px 2px;border:0;border-bottom:2px solid #f2d3e3;border-radius:0;background:transparent;color:#4a3a42;font-size:17px}
+.start.s2 input:focus{border-bottom-color:#8fd17a}
+.start.s2 .at{margin-top:4px;border:0;border-bottom:2px solid #f2d3e3;border-radius:0;background:transparent}
+.start.s2 .at:focus-within{border-bottom-color:#8fd17a}
+.start.s2 .at span{padding-left:2px;color:#e0a8c6}
+.start.s2 .at input{border:0}
+.start.s2 .note{font-size:12px;color:#c3a3b5;margin:-4px 0 22px;text-align:center}
+.start.s2 .go{border-radius:30px;background:#8fd17a;font-size:17px;font-weight:800;padding:16px;box-shadow:0 4px 0 #74b860}
+.start.s2 .go:disabled{background:#e3f3db;color:#b5d6a6;box-shadow:0 4px 0 #d3eac7}
