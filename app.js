@@ -211,6 +211,10 @@
       var c = String(USER.name || '').charCodeAt(String(USER.name || '').length - 1);
       var jong = c >= 0xAC00 && c <= 0xD7A3 && ((c - 0xAC00) % 28) !== 0;
       return USER.name + (jong ? '아' : '야');
+    }).replace(/\{NAME\}랑/g, function () {
+      var c = String(USER.name || '').charCodeAt(String(USER.name || '').length - 1);
+      var jong = c >= 0xAC00 && c <= 0xD7A3 && ((c - 0xAC00) % 28) !== 0;
+      return USER.name + (jong ? '이랑' : '랑');
     }).replace(/\{FULL\}/g, fullName()).replace(/\{LAST\}/g, USER.last || '').replace(/\{NAME\}/g, USER.name);
   }
   var ICO = {};
@@ -1426,6 +1430,30 @@
       myBag: '<svg width="27" height="27" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="1.900" stroke-linejoin="round"><path d="M8.500 8V6.700a3.500 3.500 0 017 0V8"/><path d="M5 8h14l.8 12.500H4.200z"/><text x="12" y="17.300" text-anchor="middle" font-size="6.400" font-weight="900" fill="#111" stroke="none" font-family="Arial,Helvetica,sans-serif">MY</text></svg>',
       scan: '<svg width="27" height="27" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2" stroke-linecap="round"><path d="M4 8.500V5.500A1.500 1.500 0 015.500 4h3M15.500 4h3A1.500 1.500 0 0120 5.500v3M20 15.500v3a1.500 1.500 0 01-1.500 1.500h-3M8.500 20h-3A1.500 1.500 0 014 18.500v-3M4 12h16"/></svg>'
     };
+    /* 더보기 아이콘 (선만 있는 검정 아이콘) */
+    function lic(inner) { return '<svg class="kmi" width="34" height="34" viewBox="0 0 32 32" fill="none" stroke="#111" stroke-width="1.700" stroke-linecap="round" stroke-linejoin="round">' + inner + '</svg>'; }
+    var MI = {
+      '선물하기': lic('<path d="M6 13.500l10-4.500 10 4.500v10L16 28 6 23.500z"/><path d="M6 13.500L16 18l10-4.500M16 18v10"/><path d="M16 9.500S11.500 7 11.500 4.800c0-1.400 1.100-2.300 2.300-2.300 1 0 1.700.5 2.200 1.300.5-.8 1.200-1.300 2.200-1.300 1.200 0 2.300.9 2.300 2.300C20.500 7 16 9.500 16 9.500z"/>'),
+      '받은선물': lic('<path d="M16 27.500S3.500 20 3.500 11.800C3.500 8 6.200 5 9.800 5c2.700 0 4.900 1.500 6.200 3.700C17.300 6.500 19.500 5 22.200 5c3.600 0 6.300 3 6.300 6.800C28.500 20 16 27.500 16 27.500z"/><path d="M16 9v18M4.500 15h23"/><path d="M16 15c-2-3-5.500-3.500-5.500-1.500S14 15 16 15zM16 15c2-3 5.500-3.500 5.500-1.500S18 15 16 15z"/>'),
+      '톡딜': lic('<circle cx="8.500" cy="8.500" r="3.300"/><circle cx="23.500" cy="23.500" r="3.300"/><path d="M19 4l-7.500 11h7l-6.500 13"/>'),
+      '이모티콘': lic('<path d="M16 3.500c6.900 0 12.500 5.400 12.500 12.100S22.900 27.700 16 27.700c-1.600 0-3.200-.3-4.600-.8L6 28.500l1.300-4.600C5 21.700 3.500 18.800 3.500 15.600 3.500 8.900 9.100 3.500 16 3.500z"/><path d="M12.500 13.500v.8M19.500 12.600c.8-.6 1.700-.6 2.400 0M11.500 18.500c2.500 2.600 6.500 2.600 9 0"/>'),
+      '라이브쇼핑': lic('<path d="M4 7h24v14H18.500L14 26v-5H4z"/><text x="16" y="17.700" text-anchor="middle" font-size="8.300" font-weight="800" fill="#111" stroke="none" font-family="Arial,Helvetica,sans-serif">LIVE</text>'),
+      '메이커스': lic('<circle cx="16" cy="16" r="12"/><path d="M10.500 21.500v-11l5.500 7 5.500-7v11"/>'),
+      '프렌즈': lic('<path d="M9.500 9.500a3.300 3.300 0 115.300-2.600M22.500 9.500a3.300 3.300 0 10-5.300-2.600"/><path d="M5 17c0-6 4.900-10 11-10s11 4 11 10-4.900 10-11 10S5 23 5 17z"/><path d="M11 15.300h2.500M18.500 15.300H21"/><path d="M13 20.300c0-1.500 1.300-2.300 3-2.300s3 .8 3 2.300-1.300 2.200-3 2.200-3-.7-3-2.200z"/><path d="M16 18v1.300"/>'),
+      'AI국민비서': lic('<circle cx="16" cy="16" r="12.500" stroke-width="2.200"/><path d="M8.500 15c.8-3.700 4-6 7.700-6 3.900 0 7 2.900 7 6.600 0 3.300-2.700 5.900-5.900 5.900-2.400 0-4.300-1.900-4.300-4.300 0-1.800 1.400-3.200 3.200-3.200" stroke-width="2.600"/>'),
+      '모바일신분증': lic('<rect x="3.500" y="7" width="25" height="18" rx="2.500"/><circle cx="11" cy="14" r="2.800"/><path d="M6.500 21.300c.6-2.600 2.300-3.900 4.500-3.900s3.900 1.300 4.500 3.900M18.500 13.500h6.500M18.500 18h6.500"/>'),
+      '톡클라우드': lic('<path d="M9.500 24.500h14a5.500 5.500 0 001-10.900A8 8 0 009 12.500a6 6 0 00.5 12z"/>'),
+      '캘린더': lic('<rect x="5.500" y="6" width="21" height="21" rx="1.500"/><path d="M10.500 3.500V8M21.500 3.500V8M5.500 10.500h21M12 18l3 3 5.500-6"/>'),
+      '예약하기': lic('<rect x="5.500" y="6" width="21" height="21" rx="1.500"/><path d="M10.500 3.500V8M21.500 3.500V8M5.500 10.500h21M10.500 18.500h11M17.500 14.500l4 4-4 4"/>')
+    };
+    /* 쇼핑 아이콘 (색 있는 아이콘) */
+    var SI = {
+      gift: '<svg width="34" height="34" viewBox="0 0 32 32"><rect x="5" y="12" width="22" height="16" rx="2.500" fill="#ffb31a"/><rect x="4" y="10" width="24" height="6" rx="2" fill="#ffc83d"/><rect x="14" y="10" width="4" height="18" fill="#ff4d4d"/><path d="M16 11S9 9.500 9 6.300C9 4.500 10.300 3.300 12 3.300c2.200 0 4 3.300 4 7.700zM16 11s7-1.500 7-4.700c0-1.800-1.300-3-3-3-2.200 0-4 3.300-4 7.700z" fill="#ff4d4d"/></svg>',
+      deal: '<svg width="34" height="34" viewBox="0 0 32 32"><circle cx="8.500" cy="9" r="4" fill="#ff3d57"/><circle cx="23.500" cy="23" r="4" fill="#ff3d57"/><path d="M20 3.500L11 16h7.500l-6 12.500L25 13h-7.500z" fill="#ff3d57"/></svg>',
+      live: '<svg width="38" height="34" viewBox="0 0 36 32"><path d="M4 5h28a2 2 0 012 2v15a2 2 0 01-2 2H20l-6 5v-5H4a2 2 0 01-2-2V7a2 2 0 012-2z" fill="#ff2a2a"/><text x="18" y="18.800" text-anchor="middle" font-size="10" font-weight="900" fill="#fff" font-family="Arial,Helvetica,sans-serif">LIVE</text></svg>',
+      brand: '<svg width="34" height="34" viewBox="0 0 32 32"><path d="M6 3h20a1.500 1.500 0 011.500 1.500v14.300c0 .5-.2.900-.6 1.200L17 28.400a1.500 1.500 0 01-2 0L5.100 20a1.500 1.500 0 01-.6-1.200V4.500A1.500 1.500 0 016 3z" fill="#ff9a3c"/><circle cx="12" cy="10" r="2" fill="#fff"/><circle cx="20" cy="17" r="2" fill="#fff"/><path d="M20.500 9L11.500 18" stroke="#fff" stroke-width="2.200" stroke-linecap="round"/></svg>',
+      forme: '<svg width="36" height="34" viewBox="0 0 32 30"><path d="M16 28S2 20 2 10.200C2 5.800 5.200 2.500 9.300 2.500c2.900 0 5.300 1.600 6.700 4 1.400-2.400 3.800-4 6.700-4C26.800 2.500 30 5.800 30 10.200 30 20 16 28 16 28z" fill="#9b5cff"/></svg>'
+    };
     function renderNow() {
       main.innerHTML = sbHtml('dark') + head('지금', [kic.search, kic2.newOpen, kic.gear]) +
         '<div class="kk-list kk-l2"><div class="kk-pills"><span class="kk-pill">숏폼</span><span class="kk-pill on">오픈채팅</span></div>' +
@@ -1441,7 +1469,7 @@
     });
     function renderShop() {
       var tabs = ['홈', '랭킹', '아모레특가', '아디다스쎈딜', '수능특가', '패션'].map(function (x, i) { return '<span class="kk-pill' + (i === 0 ? ' on' : '') + '"' + lnk('store') + '>' + x + '</span>'; }).join('');
-      var acts = [['i1', '선물하기', 'gift'], ['i2', '톡딜', 'store'], ['i3', '라이브쇼핑', 'live'], ['i4', '브랜드딜', 'store'], ['i5', 'FOR ME', 'store']].map(function (a) { return '<div class="ks-act"' + lnk(a[2]) + '>' + spr(a[0], 33) + '<span>' + a[1] + '</span></div>'; }).join('');
+      var acts = [['gift', '선물하기', 'gift'], ['deal', '톡딜', 'store'], ['live', '라이브쇼핑', 'live'], ['brand', '브랜드딜', 'store'], ['forme', 'FOR ME', 'store']].map(function (a) { return '<div class="ks-act"' + lnk(a[2]) + '><span class="si">' + SI[a[0]] + '</span><span>' + a[1] + '</span></div>'; }).join('');
       main.innerHTML = sbHtml('dark') + head('쇼핑', ['<span' + lnk('store') + '>' + kic.search + '</span>', '<span' + lnk('store') + '>' + kic2.myBag + '</span>', kic.gear]) +
         '<div class="kk-list kk-l2"><div class="kk-pills hs">' + tabs + '</div>' +
         '<div class="ks-cards hs"><div class="ks-card"' + lnk('store') + '><b>최근 본 상품</b><div class="th">' + spr('r1', 45) + spr('r2', 45) + '</div></div>' +
@@ -1455,7 +1483,7 @@
     function renderMore() {
       var labels = [['선물하기', '받은선물', '톡딜', '이모티콘'], ['라이브쇼핑', '메이커스', '프렌즈', 'AI국민비서'], ['모바일신분증', '톡클라우드', '캘린더', '예약하기']];
       var gl = { '선물하기': 'gift', '받은선물': 'gift', '톡딜': 'store', '이모티콘': 'emo', '라이브쇼핑': 'live', '메이커스': 'makers', '프렌즈': 'friends' };
-      var grid = labels.map(function (row, r) { return row.map(function (l, c) { return '<div class="km-it"' + (gl[l] ? lnk(gl[l]) : '') + '>' + spr('g' + r + c, 33) + '<span>' + l + '</span></div>'; }).join(''); }).join('');
+      var grid = labels.map(function (row, r) { return row.map(function (l, c) { return '<div class="km-it"' + (gl[l] ? lnk(gl[l]) : '') + '>' + MI[l] + '<span>' + l + '</span></div>'; }).join(''); }).join('');
       var pay = (C.KAKAO && C.KAKAO.PAY) || '10,000원';
       main.innerHTML = sbHtml('dark') + head('더보기', [kic.search, kic2.scan, '<span class="kk-dot">' + kic.gear + '</span>']) +
         '<div class="kk-list kk-l2 km"><div class="kk-pills"><span class="kk-pill on">홈</span><span class="kk-pill">지갑</span></div>' +

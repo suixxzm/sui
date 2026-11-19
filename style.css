@@ -1162,3 +1162,6 @@ svg{display:block}
 .wb-load.done{display:none}
 @keyframes wbl{from{transform:translateX(-100%)}to{transform:translateX(260%)}}
 .wb-fr{position:absolute;left:0;right:0;bottom:0;top:calc(var(--top) + 51px);width:100%;height:calc(100% - var(--top) - 51px);border:0;background:#fff}
+.ks-act .si{height:34px;display:flex;align-items:center}
+.kmi{display:block}
+.kk-av img{object-fit:cover!important}
