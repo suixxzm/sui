@@ -12,7 +12,7 @@ window.CONFIG = {
   // 잠금화면 왼쪽 위 통신사
   CARRIER: "SKT",
   // 사진 파일 이름 (깃허브에 이 이름으로 올리면 돼요)
-  IMG: { lockWallpaper: "./wallpaper-lock.jpg", homeWallpaper: "./wallpaper-home.jpg", startBg: "./start-bg.jpg" },
+  IMG: { lockWallpaper: "./wallpaper.jpg", homeWallpaper: "./wallpaper.jpg", startBg: "./start-bg.jpg" },
 
   // 잠금화면 부재중 전화 알림 (위가 최신)
   NOTIFS: [
