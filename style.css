@@ -1183,3 +1183,6 @@ svg{display:block}
 .nd-ov{position:absolute;inset:0;z-index:500;background:#000;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .8s ease;pointer-events:none}
 .nd-ov.on{opacity:1;pointer-events:auto}
 .nd-ov .t{color:#fff;font-size:20px;font-weight:600;letter-spacing:.5px}
+.st-row.st-skip{justify-content:center;color:#007aff;font-size:17px;cursor:pointer}
+.st-row.st-skip::before{display:none}
+.st-row.st-skip.off{color:#8e8e93;cursor:default}

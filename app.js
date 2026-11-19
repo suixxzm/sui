@@ -760,8 +760,9 @@
       '<div class="st-grp"><div class="st-row" id="stNotif"><span class="st-ic" style="background:#ff3b30"><svg viewBox="0 0 24 24" fill="#fff"><path d="M12 2a6 6 0 00-6 6v4l-2 3v1h16v-1l-2-3V8a6 6 0 00-6-6zm-2 17a2 2 0 004 0z"/></svg></span><span class="st-tx">알림 끄기</span><span class="st-tg real' + (notifOff ? ' on' : '') + '" id="stTg"><i></i></span></div></div>' +
       '<div class="st-foot">켜면 X 쪽지와 인스타그램 알림이 오지 않아요.</div>' +
       grp(G1) + grp(G2) + grp(G3) +
+      '<div id="stSkipBox"></div>' +
       '<div class="st-grp"><button type="button" class="st-row st-reset" id="stReset">처음부터 다시 하기</button></div>' +
-      '<div style="text-align:center;color:#aeaeb2;font-size:12px;padding:6px 0 30px">버전 24</div></div></div>';
+      '<div style="text-align:center;color:#aeaeb2;font-size:12px;padding:6px 0 30px">버전 28</div></div></div>';
     var iL = qs(layer, '#stLast'), iF = qs(layer, '#stFirst'), iI = qs(layer, '#stIg');
     qs(layer, '#stNotif').addEventListener('click', function () {
       setNotifOff(!notifOff);
@@ -781,6 +782,23 @@
       if (iI.value) { USER.igId = iI.value; saveUser(); }
     });
     iI.addEventListener('blur', function () { iI.value = USER.igId; });
+    var skBox = qs(layer, '#stSkipBox'), skKey = '';
+    function skPaint() {
+      if (!skBox.isConnected) { clearInterval(skIv); return; }
+      var o = skipStatus(), key = o ? o.kind + o.label + o.foot : '';
+      if (key === skKey) { return; } skKey = key;
+      skBox.innerHTML = o ? '<div class="st-grp"><button type="button" class="st-row st-skip' + (o.kind === 'play' || o.kind === 'busy' ? ' off' : '') + '" id="stSkip">' + esc(o.label) + '</button></div><div class="st-foot" style="white-space:pre-line">' + esc(o.foot) + '</div>' : '';
+      var b = qs(skBox, '#stSkip');
+      if (b) {
+        b.addEventListener('click', function () {
+          var st = skipStatus(); if (!st) { return; }
+          if (st.kind === 'kakao') { kkFlush(); closeApp(); return; }
+          if (st.kind === 'stage' || st.kind === 'force') { var r = skipStage(); if (r === 'evening') { closeApp(); } return; }
+          skKey = ''; skPaint();
+        });
+      }
+    }
+    var skIv = setInterval(skPaint, 500); skPaint();
     qs(layer, '#stReset').addEventListener('click', function () {
       var o = el('<div class="st-ov"><div class="st-sheet"><div class="st-st"><b>처음부터 다시 할까요?</b><span>지금까지의 진행 상황이 모두 초기화돼요. 이름과 인스타그램 아이디는 그대로 남아요.</span></div>' +
         '<button type="button" class="st-ok" id="stOk">처음부터 다시 하기</button><button type="button" class="st-no" id="stNo">취소</button></div></div>');
@@ -1260,7 +1278,16 @@
     setTimeout(function () { Object.keys(KK_SCRIPT).forEach(function (n) { if (kkS[n]) { kkRun(n); } }); }, 0);
   }
   /* 세 카톡이 모두 끝나면(남은 단계가 '저녁 기다리기'뿐이면) 잠시 뒤 폰 시간을 저녁으로 돌리고 '저녁' 표시를 남겨요 */
-  var EVE_T = null;
+  /* 기다렸다가 오는 카톡(wait) 목록 — 설정에서 '카톡 바로 받기'로 당겨올 수 있어요 */
+  var KK_PEND = [];
+  function kkLater(name, ms, fn) {
+    var p = { name: name, at: Date.now() + ms, fn: fn };
+    p.t = setTimeout(function () { kkPendRun(p); }, ms);
+    KK_PEND.push(p);
+  }
+  function kkPendRun(p) { var i = KK_PEND.indexOf(p); if (i < 0) { return; } KK_PEND.splice(i, 1); clearTimeout(p.t); p.fn(); }
+  function kkFlush() { KK_PEND.slice().forEach(kkPendRun); }
+  var EVE_T = null, EVE_AT = 0, NEXT_AT = 0;
   function kkCheckEvening() {
     if (EVE_T || KK_FLAGS['저녁']) { return; }
     var names = Object.keys(KK_SCRIPT); if (!names.length) { return; }
@@ -1269,6 +1296,7 @@
       var h = st.q[0]; return !h || (h.need && String(h.need) === '저녁');
     });
     if (!all) { return; }
+    EVE_AT = Date.now() + (C.EVENING_DELAY || 150000);
     EVE_T = setTimeout(function () { setGameClock(C.EVENING_TIME || '21:40'); kkSetFlags('저녁'); setTimeout(kkCheckNextDay, 300); }, C.EVENING_DELAY || 150000);
   }
   /* 저녁 대화까지 다 끝나면(또는 저녁 대화가 없으면) 다음 날 새벽으로 넘어가요 */
@@ -1281,6 +1309,7 @@
       var h = st.q[0]; return !h || (h.need && String(h.need) === '다음날');
     });
     if (!all) { return; }
+    NEXT_AT = Date.now() + (C.DAY2.DELAY || 15000);
     NEXT_T = setTimeout(goNextDay, C.DAY2.DELAY || 15000);
   }
   function altIds(seed, n) {
@@ -1303,7 +1332,7 @@
     if (DATE_AUTO || D2.DATE) { C.DATE = D2.DATE || makeDate(); }
     setGameClock(D2.TIME || '03:12');
     /* X: 추천 타임라인 교체, 알계 팔로우 알림, 협박 쪽지 */
-    if (D2.TWEETS) { C.TWEETS = D2.TWEETS; }
+    if (D2.TWEETS) { C.TWEETS = D2.TWEETS.filter(function (t) { return (!t['if'] || KK_FLAGS[t['if']]) && (!t.unless || !KK_FLAGS[t.unless]); }); }
     var ids = altIds(20261025, 80), no = [], k = 0, mins = ['방금', '방금', '1분', '1분', '2분', '3분', '3분', '4분', '5분', '6분', '8분', '9분', '11분', '13분', '15분', '18분', '21분', '25분'];
     mins.forEach(function (tm, i) { var c = 1 + (i % 3); no.push({ who: ids.slice(k, k + c), more: i % 2 ? 0 : 7 + (i * 13) % 40, time: tm }); k += c; });
     C.NOTIS = D2.NOTIS || no; notiOpen = false;
@@ -1322,6 +1351,34 @@
     L.home = null; showLock();
     kkSetFlags('다음날');
   }
+  /* 설정의 '시간 넘기기' 버튼: 지금 단계를 바로 넘겨요 (자동으로 넘어가는 것도 그대로) */
+  function skipStage() {
+    if (!KK_FLAGS['저녁']) {
+      if (EVE_T) { clearTimeout(EVE_T); } EVE_T = true;
+      setGameClock(C.EVENING_TIME || '21:40'); kkSetFlags('저녁'); setTimeout(kkCheckNextDay, 300);
+      return 'evening';
+    }
+    if (!KK_FLAGS['다음날'] && C.DAY2) { if (NEXT_T) { clearTimeout(NEXT_T); } NEXT_T = true; goNextDay(); return 'nextday'; }
+    return '';
+  }
+  /* 설정 버튼 상태: kakao = 기다리는 카톡 있음 / stage = 시간만 남음 / play = 답장할 차례 / busy = 카톡 오는 중 / force = 그냥 넘기기 */
+  function mmss(ms) { var t = Math.max(0, Math.ceil(ms / 1000)); return Math.floor(t / 60) + ':' + pad2(t % 60); }
+  function skipStatus() {
+    var now = Date.now();
+    if (KK_PEND.length) {
+      var soon = Math.min.apply(null, KK_PEND.map(function (p) { return p.at; }));
+      return { kind: 'kakao', label: '카톡 바로 받기', foot: '기다리는 카톡이 있어요 · 남은 시간 ' + mmss(soon - now) + '\n누르면 바로 와요.' };
+    }
+    var names = Object.keys(KK_SCRIPT);
+    if (names.some(function (n) { return kkS[n] && kkS[n].busy; })) { return { kind: 'busy', label: '카톡이 오는 중이에요', foot: '잠시만 기다려 주세요.' }; }
+    if (!KK_FLAGS['저녁'] && EVE_T && EVE_T !== true) { return { kind: 'stage', label: '저녁으로 넘어가기', foot: '저녁까지 남은 시간 ' + mmss(EVE_AT - now) + '\n누르면 바로 넘어가요.' }; }
+    if (KK_FLAGS['저녁'] && !KK_FLAGS['다음날'] && NEXT_T && NEXT_T !== true) { return { kind: 'stage', label: '다음 날로 넘어가기', foot: '다음 날까지 남은 시간 ' + mmss(NEXT_AT - now) + '\n누르면 바로 넘어가요.' }; }
+    var mine = names.filter(function (n) { var st = kkS[n]; if (!st) { var f0 = (KK_SCRIPT[n] || [])[0]; return !!f0 && !f0.need; } var h = st.q[0]; return h && (h.choice || h.me); });
+    if (mine.length) { return { kind: 'play', label: '플레이를 더 진행해주세요', foot: mine.join(', ') + ' 카톡에 답장할 차례예요.' }; }
+    var f = skipLabel();
+    return f ? { kind: 'force', label: f, foot: '기다리지 않고 바로 다음 장면으로 넘어가요.' } : null;
+  }
+  function skipLabel() { return !KK_FLAGS['저녁'] ? '저녁으로 넘어가기' : (!KK_FLAGS['다음날'] && C.DAY2 ? '다음 날로 넘어가기' : ''); }
   function setGameClock(hhmm) {
     var m = String(hhmm).match(/(\d+):(\d+)/); if (!m) { return; }
     CLOCK_BASE = parseInt(m[1], 10) * 60 + parseInt(m[2], 10); CLOCK0 = Date.now();
@@ -1339,7 +1396,7 @@
       if (s0.set && !s0.me && !s0.them && !s0.choice) { st.q.shift(); kkSetFlags(s0.set); continue; }
       if (s0.to) {                                                               /* 다른 방으로 메시지 보내기 (기다리지 않고 바로 다음 단계) */
         st.q.shift();
-        (function (o) { setTimeout(function () { if (o.them && o.them.length) { kkReplies(o.to, o.them, function () { if (o.set2) { kkSetFlags(o.set2); } }); } }, o.wait || 0); })(s0);
+        (function (o) { kkLater(o.to, o.wait || 0, function () { if (o.them && o.them.length) { kkReplies(o.to, o.them, function () { if (o.set2) { kkSetFlags(o.set2); } }); } }); })(s0);
         continue;
       }
       if (s0.ending) { st.q.shift(); setTimeout(function () { kkEnding(s0.ending[0], s0.ending[1]); }, s0.wait || 2200); kkUiField(name); return; }
@@ -1350,7 +1407,7 @@
       st.q.shift(); st.busy = true; kkUiField(name);
       var go = function () { st.busy = false; if (s.set) { kkSetFlags(s.set); } kkRun(name); };
       var say = function () { if (s.them && s.them.length) { kkReplies(name, s.them, go); } else { go(); } };
-      if (s.wait) { setTimeout(say, s.wait); } else { say(); }
+      if (s.wait) { kkLater(name, s.wait, say); } else { say(); }
       return;
     }
     kkUiField(name);
