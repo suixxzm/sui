@@ -90,6 +90,7 @@
     var m = String(C.TIME || '8:00').match(/(\d+):(\d+)/);
     return m ? parseInt(m[1], 10) * 60 + parseInt(m[2], 10) : 480;
   })();
+  var CLOCK_START = CLOCK_BASE;
   function clockMin() { return (CLOCK_BASE + Math.floor((Date.now() - CLOCK0) / 60000)) % 1440; }
   function pad2(n) { return (n < 10 ? '0' : '') + n; }
   function clockStr() { var t = clockMin(); return Math.floor(t / 60) + ':' + pad2(t % 60); }
@@ -473,7 +474,7 @@
     clearLayers();
     passBuf = ''; passOn = false;
     setHB('light');
-    var notifs = preGroupHtml() + kakaoLockHtml() + xRecHtml() + xFollowHtml() + C.NOTIFS.map(function (n) {
+    var notifs = preGroupHtml() + kakaoLockHtml() + wvLockHtml() + xRecHtml() + xFollowHtml() + C.NOTIFS.map(function (n) {
       var mm = String(n.time).match(/(\d+)\s*분/), off = n.time === '방금' ? 0 : (mm ? parseInt(mm[1], 10) : -1);
       return '<div class="notif"><div class="ic">' + ICO.phone + '</div><div class="tx"><b>' + esc(n.name) + '</b><span>' + esc(n.text) + '</span></div><div class="tm"' + (off >= 0 ? ' data-at="' + (clockMin() - off) + '"' : '') + '>' + esc(n.time) + '</div></div>';
     }).join('');
@@ -609,7 +610,7 @@
       try { window.open(C.YOUTUBE_URL, '_blank', 'noopener'); } catch (e) {}
       return;
     }
-    if (id === 'weverse') {
+    if (id === 'weverse' && !WV_ON) {
       try { window.open(C.WEVERSE_URL || 'https://weverse.io/tws/profile/44e29f1d7d5a64908dc4674a53e53d97', '_blank', 'noopener'); } catch (e) {}
       return;
     }
@@ -763,7 +764,7 @@
       grp(G1) + grp(G2) + grp(G3) +
       '<div id="stSkipBox"></div>' +
       '<div class="st-grp"><button type="button" class="st-row st-reset" id="stReset">처음부터 다시 하기</button></div>' +
-      '<div style="text-align:center;color:#aeaeb2;font-size:12px;padding:6px 0 30px">버전 33</div></div></div>';
+      '<div style="text-align:center;color:#aeaeb2;font-size:12px;padding:6px 0 30px">버전 53</div></div></div>';
     var iL = qs(layer, '#stLast'), iF = qs(layer, '#stFirst'), iI = qs(layer, '#stIg');
     qs(layer, '#stNotif').addEventListener('click', function () {
       setNotifOff(!notifOff);
@@ -1275,7 +1276,7 @@
   var KK_FLAGS = {};
   function kkHasAll(f) { if (!f) { return true; } return (Array.isArray(f) ? f : [f]).every(function (x) { return !!KK_FLAGS[x]; }); }
   function kkHasAny(f) { if (!f) { return false; } return (Array.isArray(f) ? f : [f]).some(function (x) { return !!KK_FLAGS[x]; }); }
-  function kkOk(o) { return !o || (kkHasAll(o['if']) && !kkHasAny(o.unless)); }
+  function kkOk(o) { return !o || (kkHasAll(o['if']) && !kkHasAny(o.unless) && (!o.ifAny || kkHasAny(o.ifAny))); }   /* ifAny: 하나라도 있으면 */
   function kkSetFlags(f) {
     if (!f) { return; }
     (Array.isArray(f) ? f : [f]).forEach(function (x) { if (x) { KK_FLAGS[x] = true; } });
@@ -1332,7 +1333,7 @@
     var names = Object.keys(KK_SCRIPT);
     var all = names.every(function (n) {
       var st = kkS[n]; if (!st) { return true; } if (st.busy) { return false; }
-      var h = st.q[0]; return !h || (h.need && String(h.need) === '다음날');
+      var h = st.q[0]; return !h || (!!h.need && !kkHasAll(h.need));   /* 저녁 이후엔 다른 표시를 기다리는 방도 끝난 걸로 봐요 (멈춤 방지) */
     });
     if (!all) { return; }
     NEXT_AT = Date.now() + (C.DAY2.DELAY || 15000);
@@ -1356,7 +1357,7 @@
     TD[0] = nd.getFullYear(); TD[1] = nd.getMonth() + 1; TD[2] = nd.getDate();
     C.TODAY = TD[0] + '-' + pad2(TD[1]) + '-' + pad2(TD[2]); KK_DATE = C.TODAY;
     if (DATE_AUTO || D2.DATE) { C.DATE = D2.DATE || makeDate(); }
-    setGameClock(D2.TIME || '03:12');
+    setGameClock(D2.TIME || '03:12'); TW_T0 = clockMin();
     /* X: 추천 타임라인 교체, 알계 팔로우 알림, 협박 쪽지 */
     if (D2.TWEETS) { C.TWEETS = D2.TWEETS.filter(function (t) { return (!t['if'] || KK_FLAGS[t['if']]) && (!t.unless || !KK_FLAGS[t.unless]); }); }
     var ids = altIds(20261025, 80), no = [], k = 0, mins = ['방금', '방금', '1분', '1분', '2분', '3분', '3분', '4분', '5분', '6분', '8분', '9분', '11분', '13분', '15분', '18분', '21분', '25분'];
@@ -1399,12 +1400,27 @@
     if (names.some(function (n) { return kkS[n] && kkS[n].busy; })) { return { kind: 'busy', label: '카톡이 오는 중이에요', foot: '잠시만 기다려 주세요.' }; }
     if (!KK_FLAGS['저녁'] && EVE_T && EVE_T !== true) { return { kind: 'stage', label: '저녁으로 넘어가기', foot: '저녁까지 남은 시간 ' + mmss(EVE_AT - now) + '\n누르면 바로 넘어가요.' }; }
     if (KK_FLAGS['저녁'] && !KK_FLAGS['다음날'] && NEXT_T && NEXT_T !== true) { return { kind: 'stage', label: '다음 날로 넘어가기', foot: '다음 날까지 남은 시간 ' + mmss(NEXT_AT - now) + '\n누르면 바로 넘어가요.' }; }
-    var mine = names.filter(function (n) { var st = kkS[n]; if (!st) { var f0 = (KK_SCRIPT[n] || [])[0]; return !!f0 && !f0.need; } var h = st.q[0]; return h && (h.choice || h.me); });
+    var mine = names.filter(function (n) { var st = kkS[n]; if (!st) { var f0 = (KK_SCRIPT[n] || [])[0]; return !!f0 && !f0.need; } var h = st.q[0]; return h && (h.me || (h.choice && h.choice.some(function (c) { return kkOk(c); }))); });
     if (mine.length) { return { kind: 'play', label: '플레이를 더 진행해주세요', foot: mine.join(', ') + ' 카톡에 답장할 차례예요.' }; }
     var f = skipLabel();
     return f ? { kind: 'force', label: f, foot: '기다리지 않고 바로 다음 장면으로 넘어가요.' } : null;
   }
   function skipLabel() { return !KK_FLAGS['저녁'] ? '저녁으로 넘어가기' : (!KK_FLAGS['다음날'] && C.DAY2 ? '다음 날로 넘어가기' : ''); }
+  /* 트윗 '몇 시간' 표시를 게임 시간에 맞춰 늘려줘요 (저녁으로 넘어가면 아침 트윗은 13시간 전처럼) */
+  var TW_T0 = null;
+  function twAge(a) {
+    a = String(a == null ? '' : a); if (TW_T0 === null) { TW_T0 = CLOCK_START; }
+    var m = a.match(/^(\d+)\s*(분|시간|일)/), base;
+    if (/^방금/.test(a) || a === '') { base = 0; }
+    else if (m) { base = parseInt(m[1], 10) * (m[2] === '분' ? 1 : m[2] === '시간' ? 60 : 1440); }
+    else { return a; }
+    var e2 = clockMin() - TW_T0; if (e2 < 0) { e2 += 1440; }
+    var t = base + e2;
+    if (t < 1) { return a === '' ? '' : '방금'; }
+    if (t < 60) { return t + '분'; }
+    if (t < 1440) { return Math.floor(t / 60) + '시간'; }
+    return Math.floor(t / 1440) + '일';
+  }
   function setGameClock(hhmm) {
     var m = String(hhmm).match(/(\d+):(\d+)/); if (!m) { return; }
     CLOCK_BASE = parseInt(m[1], 10) * 60 + parseInt(m[2], 10); CLOCK0 = Date.now();
@@ -1427,6 +1443,7 @@
         (function (o) { kkLater(o.to, o.wait || 0, function () { if (o.them && o.them.length) { kkReplies(o.to, o.them, function () { if (o.set2) { kkSetFlags(o.set2); } }); } }); })(s0);
         continue;
       }
+      if (!s0.me && !s0.them && !s0.choice && !s0.wait && !s0.ending) { st.q.shift(); continue; }  /* 모르는 단계는 건너뛰기 (멈춤 방지) */
       if (s0.ending) { st.q.shift(); setTimeout(function () { kkEnding(s0.ending[0], s0.ending[1]); }, s0.wait || 2200); kkUiField(name); return; }
       break;
     }
@@ -1846,12 +1863,13 @@
         if (stp && stp.choice) {
           kbHide();
           var vis = []; stp.choice.forEach(function (c, i) { if (kkOk(c)) { vis.push(i); } });
-          if (stp.autoOne && vis.length === 1) {          /* 고를 게 하나뿐이면 바로 넘어가기 */
+          if (stp.autoOne && (stp.autoOne === true || kkHasAll(stp.autoOne)) && vis.length === 1) {          /* 고를 게 하나뿐이면 바로 넘어가기 */
             chBox.classList.remove('on'); chBox.innerHTML = ''; v.classList.remove('chon');
             setTimeout(function () { kkPick(name, vis[0]); }, 500);
             return;
           }
           chBox.innerHTML = stp.choice.map(function (c, i) { return kkOk(c) ? '<button type="button" class="kc-b' + (c.silent ? ' sil' : '') + '" data-i="' + i + '">' + esc(fillName(c.label)) + '</button>' : ''; }).join('');
+          if (!vis.length) { chBox.classList.remove('on'); v.classList.remove('chon'); chBox.innerHTML = ''; return; }   /* 다른 방에서 먼저 골라야 하는 경우 */
           chBox.classList.add('on'); v.classList.add('chon');
           requestAnimationFrame(function () { body.style.paddingBottom = (chBox.offsetHeight + 84) + 'px'; scroll(); setTimeout(scroll, 260); });
           qsa(chBox, '.kc-b').forEach(function (b) {
@@ -2307,7 +2325,7 @@
   }
   function tweetHtml(t) {
     return '<article class="tw" data-id="' + t.id + '">' + xav(t.avatar, t.avatarFallback) +
-      '<div class="mn"><div class="hd"><b>' + esc(t.name) + '</b><span>@' + esc(t.handle) + ' · ' + esc(t.age) + '</span><span class="xl">' + I.xlogo(17) + '</span></div>' +
+      '<div class="mn"><div class="hd"><b>' + esc(t.name) + '</b><span>@' + esc(t.handle) + ' · ' + esc(twAge(t.age)) + '</span><span class="xl">' + I.xlogo(17) + '</span></div>' +
       '<div class="tx">' + rich(t.text) + '</div>' + mediaHtml(t) + actsHtml(t, false) + '</div></article>';
   }
   function updateBadge() {
@@ -2354,6 +2372,51 @@
       return '<div class="notif" data-kk="' + esc(o.n) + '"><div class="ic">' + ICO.kakao + '</div><div class="tx"><b>' + esc(o.n) + '</b><span>' + esc(o.l.img ? '사진' : fillName(o.l.text)) + '</span></div><div class="tm">' + esc(o.l.t) + '</div></div>';
     }).join('');
   }
+  /* ===== 위버스 공지 (다음 날 config DAY2.WEVERSE.time 에 알림 → 그 뒤로 위버스 앱은 공지 화면만) ===== */
+  var WV_ON = false, WV_T = '';
+  function wvCfg() { return C.DAY2 && C.DAY2.WEVERSE; }
+  function wvNotiText() { var w = wvCfg(); return w.noti || w.title; }
+  function wvLockHtml() {
+    if (!WV_ON || notifOff) { return ''; }
+    return '<div class="notif" data-app="weverse"><div class="ic">' + ICO.weverseFb + '</div><div class="tx"><b>' + esc(wvCfg().from || 'TWS') + '</b><span>' + esc(wvNotiText()) + '</span></div><div class="tm">' + esc(WV_T) + '</div></div>';
+  }
+  function wvNotify() {
+    var w = wvCfg(); if (!w || WV_ON) { return; }
+    WV_ON = true; WV_T = clockHHMM();
+    if (notifOff) { return; }
+    if (current === 'lock' && L.lock) {
+      var box = qs(L.lock, '.notifs');
+      if (box) { var n = el(wvLockHtml().replace('class="notif"', 'class="notif pop"')); box.insertBefore(n, box.firstChild); bindLockNotifs(); lockDense(); }
+      return;
+    }
+    var b = el('<div class="banner"><div class="bi">' + ICO.weverseFb + '</div><div><b>' + esc(wvCfg().from || 'TWS') + '</b><span>' + esc(wvNotiText()) + '</span></div></div>');
+    phone.appendChild(b); b.style.pointerEvents = 'auto'; b.style.cursor = 'pointer';
+    b.addEventListener('click', function () { if (b.__moved) { return; } b.remove(); if (current === 'app') { closeApp(true); } if (current === 'home') { openApp('weverse', null, { instant: true }); } });
+    swipeAway(b); void b.offsetWidth;
+    requestAnimationFrame(function () { b.classList.add('on'); });
+    setTimeout(function () { b.classList.add('out'); }, 4200);
+    setTimeout(function () { b.remove(); }, 4800);
+  }
+  function wvTick() {
+    var w = wvCfg(); if (WV_ON || !w || !KK_FLAGS['다음날']) { return; }
+    var m = String(w.time || '08:02').match(/(\d+):(\d+)/), at = parseInt(m[1], 10) * 60 + parseInt(m[2], 10), now = clockMin();
+    if (now >= at && now < at + 600) { wvNotify(); }
+  }
+  setInterval(wvTick, 1000);
+  IMPL.weverse = function (layer) {
+    setHB('dark');
+    var w = wvCfg() || {};
+    var date = pad2(TD[1]) + '. ' + pad2(TD[2]) + '. ' + (WV_T || w.time || '');
+    var ic = {
+      back: '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 4l-8 8 8 8"/></svg>',
+      copy: '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="1.9" stroke-linejoin="round"><rect x="3.500" y="8" width="12.500" height="12.500" rx="2"/><path d="M8 8V5.500a2 2 0 012-2h8.500a2 2 0 012 2V14a2 2 0 01-2 2H16"/></svg>',
+      share: '<svg width="27" height="27" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="1.9" stroke-linejoin="round"><path d="M14 4.500l7 6.500-7 6.500v-3.800c-5 0-8.500 1.600-11 5.300.8-5.500 4-10 11-10.800z"/></svg>'
+    };
+    layer.innerHTML = '<div class="wv-app">' + sbHtml('dark') +
+      '<div class="wv-top"><button type="button" class="wv-bk" aria-label="뒤로">' + ic.back + '</button><div class="wv-tt"><b>공지사항</b><span>커뮤니티로 가기 ›</span></div><div class="wv-ics">' + ic.copy + ic.share + '</div></div>' +
+      '<div class="wv-sc"><h1>' + esc(w.title || '') + '</h1><div class="wv-dt">' + esc(date) + '</div><div class="wv-bd">' + esc(fillName(w.body || '')) + '</div></div></div>';
+    qs(layer, '.wv-bk').addEventListener('click', function () { closeApp(); });
+  };
   /* 다음 날: 폭로글을 X 추천 게시물 알림처럼 (누르면 그 트윗이 열려요) */
   function xRecHtml() {
     var R0 = KK_FLAGS['다음날'] && C.DAY2 && C.DAY2.REC_NOTI; if (!R0 || notifOff) { return ''; }
@@ -2719,7 +2782,7 @@
       var rows = (C.NOTIS || []).map(function (n, i) {
         var av = n.who.map(function () { return '<span class="nav">' + I.person.replace('<svg ', '<svg width="18" height="18" ').replace('fill="currentColor"', 'fill="#fff"') + '</span>'; }).join('');
         var txt = '<b>' + esc(n.who[0]) + '</b>' + (n.more > 0 ? '님 외 ' + n.more + '명이' : '님이') + ' 회원님을 팔로우했습니다';
-        return '<div class="nrow' + (i < 8 ? ' new' : '') + '"><div class="ni">' + person + '</div><div class="nb"><div class="navs">' + av + '</div><div class="nt">' + txt + ' <span>· ' + esc(n.time) + '</span></div></div></div>';
+        return '<div class="nrow' + (i < 8 ? ' new' : '') + '"><div class="ni">' + person + '</div><div class="nb"><div class="navs">' + av + '</div><div class="nt">' + txt + ' <span>· ' + esc(twAge(n.time)) + '</span></div></div></div>';
       }).join('');
       base.innerHTML = sbHtml('dark') +
         '<div class="no-top"><div class="t1">알림</div><div class="tabs"><span class="on"><em>전체</em></span><span><em>인증됨</em></span><span><em>멘션</em></span></div></div>' +
@@ -2831,7 +2894,7 @@
       var t = twById(id);
       if (!t) { return; }
       var replies = (t.replies || []).map(function (r) {
-        return '<div class="rp">' + xav(r.avatar) + '<div><div class="hd"><b>' + esc(r.name) + '</b><span>@' + esc(r.handle) + ' · ' + esc(r.age) + '</span></div><div class="tx">' + rich(r.text) + '</div></div></div>';
+        return '<div class="rp">' + xav(r.avatar) + '<div><div class="hd"><b>' + esc(r.name) + '</b><span>@' + esc(r.handle) + ' · ' + esc(twAge(r.age)) + '</span></div><div class="tx">' + rich(r.text) + '</div></div></div>';
       }).join('');
       var v = pushView(root, sbHtml('dark') +
         '<div class="dtop"><button type="button" class="back" style="color:#0f1419">' + I.back + '</button><span class="tt">게시물</span></div>' +
@@ -2853,9 +2916,9 @@
         var qsList = quotesOf(t6);
         if (!qsList.length) { return '<div class="act-empty"><h2>아직 인용 없음</h2><p>다른 사람의 게시물을 공유할 때 본인의 의견을 추가하면 여기에 표시됩니다.</p></div>'; }
         return qsList.map(function (q) {
-          return '<div class="qt">' + xav(q.avatar) + '<div style="flex:1;min-width:0"><div class="hd" style="display:flex;gap:4px;font-size:15px"><b>' + esc(q.name) + '</b><span style="color:#536471">@' + esc(q.handle) + ' · ' + esc(q.age || '') + '</span></div>' +
+          return '<div class="qt">' + xav(q.avatar) + '<div style="flex:1;min-width:0"><div class="hd" style="display:flex;gap:4px;font-size:15px"><b>' + esc(q.name) + '</b><span style="color:#536471">@' + esc(q.handle) + ' · ' + esc(twAge(q.age || '')) + '</span></div>' +
             '<div class="tx" style="font-size:15px;line-height:20px;margin-top:2px;white-space:pre-wrap">' + rich(q.text) + '</div>' +
-            '<div class="emb"><div class="ee"><div class="hd"><b>' + esc(t6.name) + '</b><span>@' + esc(t6.handle) + ' · ' + esc(t6.age) + '</span></div><p>' + rich(t6.text) + '</p>' + (mini ? '<div class="mini">' + mini + '</div>' : '') + '</div></div>' +
+            '<div class="emb"><div class="ee"><div class="hd"><b>' + esc(t6.name) + '</b><span>@' + esc(t6.handle) + ' · ' + esc(twAge(t6.age)) + '</span></div><p>' + rich(t6.text) + '</p>' + (mini ? '<div class="mini">' + mini + '</div>' : '') + '</div></div>' +
             '<div class="acts"><span class="a">' + I.reply + '</span><span class="a">' + I.repost + (q.rt ? '<span>' + compact(q.rt) + '</span>' : '') + '</span><span class="a">' + I.like + (q.like ? '<span>' + compact(q.like) + '</span>' : '') + '</span><span class="a">' + I.views + (q.views ? '<span>' + compact(q.views) + '</span>' : '') + '</span><span class="a">' + I.bm + '</span><span class="a">' + I.shr + '</span></div></div></div>';
         }).join('');
       }
@@ -2886,7 +2949,7 @@
     function openSpin(id) {
       var t = twById(id); if (!t || !t.spin) { return; }
       var ans = t.spin.a || t.text;
-      var ago = function (x) { x = String(x || ''); return /전$/.test(x) ? x : (x ? x + ' 전' : '방금'); };
+      var ago = function (x) { x = twAge(x || ''); return /전$/.test(x) ? x : (x ? x + ' 전' : '방금'); };
       var heart = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="1.8" stroke-linejoin="round"><path d="M12 20s-7.500-4.600-9-9.200C2 7 4.400 4.500 7.400 4.500c1.900 0 3.500 1 4.600 2.600 1.100-1.600 2.700-2.600 4.600-2.600 3 0 5.400 2.500 4.400 6.300C19.500 15.400 12 20 12 20z"/></svg>';
       var xIc = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2.2" stroke-linecap="round"><path d="M5 5l14 14M19 5L5 19"/></svg>';
       var rf = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19.500 12a7.500 7.500 0 11-2.200-5.300M19.500 4.500v4.500H15"/></svg>';
