@@ -764,7 +764,7 @@
       grp(G1) + grp(G2) + grp(G3) +
       '<div id="stSkipBox"></div>' +
       '<div class="st-grp"><button type="button" class="st-row st-reset" id="stReset">처음부터 다시 하기</button></div>' +
-      '<div style="text-align:center;color:#aeaeb2;font-size:12px;padding:6px 0 30px">버전 77</div></div></div>';
+      '<div style="text-align:center;color:#aeaeb2;font-size:12px;padding:6px 0 30px">버전 79</div></div></div>';
     var iL = qs(layer, '#stLast'), iF = qs(layer, '#stFirst'), iI = qs(layer, '#stIg');
     qs(layer, '#stNotif').addEventListener('click', function () {
       setNotifOff(!notifOff);
@@ -1892,7 +1892,7 @@
       function field() {
         var stp = kkStep(name);
         inp.readOnly = true; inp.setAttribute('inputmode', 'none');
-        inp.placeholder = '메시지 입력';
+        inp.placeholder = (stp && stp.need && stp.hint && !kkHasAll(stp.need)) ? stp.hint : '메시지 입력';   /* hint: 아직 답할 수 없을 때 안내 */
         if (!typing && !(stp && stp.me)) { inp.value = ''; }
         syncSend();
         if (stp && stp.choice) {
