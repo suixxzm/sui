@@ -1227,3 +1227,7 @@ svg{display:block}
 .wv-sc h1{font-size:18px;font-weight:700;line-height:1.4;letter-spacing:-.4px;margin:0 0 6px;word-break:keep-all}
 .wv-dt{font-size:11.5px;color:#a3a3a8;margin-bottom:22px}
 .wv-bd{font-size:14px;line-height:1.6;white-space:pre-line;word-break:keep-all;letter-spacing:-.2px;color:#1a1a1a}
+.kend.bad .ke-n{background:#f3ebf1;color:#9a7a90}
+.bub .b .subj{font-weight:700}
+.banner .bi{overflow:hidden}
+.banner .bi > svg{width:100%;height:100%;display:block}

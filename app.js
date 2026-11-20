@@ -764,7 +764,7 @@
       grp(G1) + grp(G2) + grp(G3) +
       '<div id="stSkipBox"></div>' +
       '<div class="st-grp"><button type="button" class="st-row st-reset" id="stReset">처음부터 다시 하기</button></div>' +
-      '<div style="text-align:center;color:#aeaeb2;font-size:12px;padding:6px 0 30px">버전 70</div></div></div>';
+      '<div style="text-align:center;color:#aeaeb2;font-size:12px;padding:6px 0 30px">버전 73</div></div></div>';
     var iL = qs(layer, '#stLast'), iF = qs(layer, '#stFirst'), iI = qs(layer, '#stIg');
     qs(layer, '#stNotif').addEventListener('click', function () {
       setNotifOff(!notifOff);
@@ -2358,9 +2358,12 @@
     }
     return media;
   }
+  /* afterWv: 위버스 공지가 뜬 다음부터 타임라인에 보이는 트윗 */
+  function twOn(t) { return !t.afterWv || WV_ON; }
+  function ageFrom(m0) { var d = clockMin() - m0; if (d < -600) { d += 1440; } return d < 1 ? '방금' : d < 60 ? d + '분' : Math.floor(d / 60) + '시간'; }
   function tweetHtml(t) {
     return '<article class="tw" data-id="' + t.id + '">' + xav(t.avatar, t.avatarFallback) +
-      '<div class="mn"><div class="hd"><b>' + esc(t.name) + '</b><span>@' + esc(t.handle) + ' · ' + esc(twAge(t.age)) + '</span><span class="xl">' + I.xlogo(17) + '</span></div>' +
+      '<div class="mn"><div class="hd"><b>' + esc(t.name) + '</b><span>@' + esc(t.handle) + ' · ' + esc(t._t0 != null ? ageFrom(t._t0) : twAge(t.age)) + '</span><span class="xl">' + I.xlogo(17) + '</span></div>' +
       '<div class="tx">' + rich(t.text) + '</div>' + mediaHtml(t) + actsHtml(t, false) + '</div></article>';
   }
   function updateBadge() {
@@ -2418,6 +2421,7 @@
   function wvNotify() {
     var w = wvCfg(); if (!w || WV_ON) { return; }
     WV_ON = true; WV_T = clockHHMM();
+    (C.TWEETS || []).forEach(function (t) { if (t.afterWv && t._t0 == null) { t._t0 = clockMin() + (t.afterMin || 1); } });
     if (notifOff) { return; }
     if (current === 'lock' && L.lock) {
       var box = qs(L.lock, '.notifs');
@@ -2711,7 +2715,7 @@
       base.innerHTML = sbHtml('dark') +
         '<div class="x-top"><div class="t1"><span class="me">' + I.person.replace('<svg ', '<svg width="20" height="20" ').replace('fill="currentColor"', 'fill="#fff"') + '</span>' + I.xlogo(24) + '</div>' +
         '<div class="t2"><button type="button" class="on">추천</button><button type="button">팔로잉</button></div></div>' +
-        '<div class="x-feed">' + C.TWEETS.map(tweetHtml).join('') + '</div>' +
+        '<div class="x-feed">' + C.TWEETS.filter(twOn).map(tweetHtml).join('') + '</div>' +
         '<button class="fab" type="button" data-soon="1">' + I.plus.replace('width="20" height="20"', 'width="26" height="26"') + '</button>' + barHtml();
       bindBar();
       bindFeed(base);
@@ -2798,7 +2802,7 @@
     /* 검색 결과: 게임 속 트윗 중에서 검색어가 들어간 게시물을 X 검색 화면처럼 보여줘요 */
     function openResults(term) {
       var words = String(term).toLowerCase().split(/\s+/).filter(function (w) { return w; });
-      var found = C.TWEETS.filter(function (t) {
+      var found = C.TWEETS.filter(twOn).filter(function (t) {
         var hay = [t.name, t.handle, t.text, t.spin ? t.spin.q : '', t.spin ? t.spin.a : ''].join(' ').toLowerCase();
         return words.every(function (w) { return hay.indexOf(w) !== -1; });
       });
@@ -2951,9 +2955,9 @@
         var qsList = quotesOf(t6);
         if (!qsList.length) { return '<div class="act-empty"><h2>아직 인용 없음</h2><p>다른 사람의 게시물을 공유할 때 본인의 의견을 추가하면 여기에 표시됩니다.</p></div>'; }
         return qsList.map(function (q) {
-          return '<div class="qt">' + xav(q.avatar) + '<div style="flex:1;min-width:0"><div class="hd" style="display:flex;gap:4px;font-size:15px"><b>' + esc(q.name) + '</b><span style="color:#536471">@' + esc(q.handle) + ' · ' + esc(twAge(q.age || '')) + '</span></div>' +
+          return '<div class="qt">' + xav(q.avatar, q.avatarFallback) + '<div style="flex:1;min-width:0"><div class="hd" style="display:flex;gap:4px;font-size:15px"><b>' + esc(q.name) + '</b><span style="color:#536471">@' + esc(q.handle) + ' · ' + esc(t6._t0 != null ? ageFrom(t6._t0) : twAge(q.age || '')) + '</span></div>' +
             '<div class="tx" style="font-size:15px;line-height:20px;margin-top:2px;white-space:pre-wrap">' + rich(q.text) + '</div>' +
-            '<div class="emb"><div class="ee"><div class="hd"><b>' + esc(t6.name) + '</b><span>@' + esc(t6.handle) + ' · ' + esc(twAge(t6.age)) + '</span></div><p>' + rich(t6.text) + '</p>' + (mini ? '<div class="mini">' + mini + '</div>' : '') + '</div></div>' +
+            '<div class="emb"><div class="ee"><div class="hd"><b>' + esc(t6.name) + '</b><span>@' + esc(t6.handle) + ' · ' + esc(t6._t0 != null ? ageFrom(t6._t0) : twAge(t6.age)) + '</span></div><p>' + rich(t6.text) + '</p>' + (mini ? '<div class="mini">' + mini + '</div>' : '') + '</div></div>' +
             '<div class="acts"><span class="a">' + I.reply + '</span><span class="a">' + I.repost + (q.rt ? '<span>' + compact(q.rt) + '</span>' : '') + '</span><span class="a">' + I.like + (q.like ? '<span>' + compact(q.like) + '</span>' : '') + '</span><span class="a">' + I.views + (q.views ? '<span>' + compact(q.views) + '</span>' : '') + '</span><span class="a">' + I.bm + '</span><span class="a">' + I.shr + '</span></div></div></div>';
         }).join('');
       }

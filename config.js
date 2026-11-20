@@ -1241,6 +1241,53 @@ window.CONFIG = {
     "DM_GAP_MAX": 12000,
     "TWEETS": [
 {
+  "id": "wv1",
+  "afterWv": true,
+  "name": "수이!!",
+  "handle": "sui_tws42",
+  "age": "방금",
+  "avatar": "./tw-av-1.jpg",
+  "text": "아 ㅁㅊ 소속사 입장문 떴다\n사실무근이라는데\nㅈㄴ 누구 말이 맞는 거임",
+  "images": [
+    "./tw-notice.jpg"
+  ],
+  "like": 2544,
+  "rt": 3759,
+  "bm": 1482,
+  "views": 91234,
+  "detailTime": "오전 8:03",
+  "quotes": [
+    {
+      "name": ".",
+      "handle": "x_0q71k3",
+      "age": "방금",
+      "avatar": "",
+      "avatarFallback": "black",
+      "text": "사진까지 다 올렸는데 뭔 ㅋㅋ 거짓말도 성의가 너무 없네",
+      "like": 888,
+      "rt": 1574,
+      "bm": 874
+    },
+    {
+      "name": "4쩜2",
+      "handle": "fourpoint2_42",
+      "age": "방금",
+      "avatar": "",
+      "text": "아니 플디 진짜 일 개못하네",
+      "like": 474,
+      "rt": 578,
+      "bm": 44
+    },
+    {
+      "name": "수달이..",
+      "handle": "sudal_tws",
+      "age": "방금",
+      "avatar": "",
+      "text": "엄... 이게 최선인가요?"
+    }
+  ]
+},
+{
   "id": "s1",
   "if": "영재약속",
   "name": "ㅁㅁ",
