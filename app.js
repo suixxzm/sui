@@ -501,12 +501,12 @@
     bindLockNotifs(); lockDense();
     (function () {
       var dd = ddInfo(); if (!dd || dd.days !== (parseInt(C.DDAY.days, 10) || 100)) { return; }
-      setTimeout(function () {
+      (function () {   /* 다른 알림이랑 같이 바로 보이게 (예전엔 0.9초 뒤에 따로 떴음) */
         if (current !== 'lock' || !L.lock) { return; }
         var box = qs(L.lock, '.notifs'); if (!box || qs(box, '.notif[data-dd]')) { return; }
-        var n = el('<div class="notif pop" data-dd="1" data-app="dday"><div class="ic">' + ICO.dday + '</div><div class="tx"><b>디데이</b><span>' + esc(ddNotifText(dd)) + '</span></div><div class="tm">' + esc((C.DDAY && C.DDAY.time) || '방금') + '</div></div>');
+        var n = el('<div class="notif" data-dd="1" data-app="dday"><div class="ic">' + ICO.dday + '</div><div class="tx"><b>디데이</b><span>' + esc(ddNotifText(dd)) + '</span></div><div class="tm">' + esc((C.DDAY && C.DDAY.time) || '방금') + '</div></div>');
         box.insertBefore(n, box.firstChild); bindLockNotifs(); lockDense();
-      }, 900);
+      })();
     })();
     qs(l, '#lkHit').addEventListener('click', showPass);
     swipeDetect(l, function (dx, dy) { if (!passOn && dy < -50 && Math.abs(dy) > Math.abs(dx)) { showPass(); } });
@@ -764,7 +764,7 @@
       grp(G1) + grp(G2) + grp(G3) +
       '<div id="stSkipBox"></div>' +
       '<div class="st-grp"><button type="button" class="st-row st-reset" id="stReset">처음부터 다시 하기</button></div>' +
-      '<div style="text-align:center;color:#aeaeb2;font-size:12px;padding:6px 0 30px">버전 73</div></div></div>';
+      '<div style="text-align:center;color:#aeaeb2;font-size:12px;padding:6px 0 30px">버전 77</div></div></div>';
     var iL = qs(layer, '#stLast'), iF = qs(layer, '#stFirst'), iI = qs(layer, '#stIg');
     qs(layer, '#stNotif').addEventListener('click', function () {
       setNotifOff(!notifOff);
