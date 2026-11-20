@@ -8,6 +8,9 @@ window.INSTA_CONFIG = {
   posts: [
     // { img: "./ig-post-1.jpg", date: "2026-08-15", likes: 1, caption: "게시물 멘트",
     //   comments: [{ user: "아이디", text: "댓글", time: "10주" }] },
+    { img: "./ig-post-1.jpg", date: "2026-10-22", likes: 1, caption: "누가 비 오는 날 놀이공원 데이트를 하나요" },
+    { img: "./ig-post-2.jpg", date: "2026-09-21", likes: 1, caption: "신발끈 묶어주는 사람 최고❤️❤️" },
+    { img: "./ig-post-3.jpg", date: "2026-08-29", likes: 1, caption: "오늘은 너가 내 요리사💅🏻💅🏻" }
   ],
   // 인스타 좋아요를 처음 누르면 트위터 쪽지로 오는 메시지 (안 쓰면 비워두세요)
   likeDm: { handle: "", msgs: [] },
