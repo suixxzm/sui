@@ -764,7 +764,7 @@
       grp(G1) + grp(G2) + grp(G3) +
       '<div id="stSkipBox"></div>' +
       '<div class="st-grp"><button type="button" class="st-row st-reset" id="stReset">처음부터 다시 하기</button></div>' +
-      '<div style="text-align:center;color:#aeaeb2;font-size:12px;padding:6px 0 30px">버전 65</div></div></div>';
+      '<div style="text-align:center;color:#aeaeb2;font-size:12px;padding:6px 0 30px">버전 67</div></div></div>';
     var iL = qs(layer, '#stLast'), iF = qs(layer, '#stFirst'), iI = qs(layer, '#stIg');
     qs(layer, '#stNotif').addEventListener('click', function () {
       setNotifOff(!notifOff);
@@ -1485,7 +1485,8 @@
     if (s && (s.them || s.wait) && !s.choice && !s.me) {
       st.q.shift(); st.busy = true; kkUiField(name);
       var go = function () { st.busy = false; if (s.set) { kkSetFlags(s.set); } kkRun(name); };
-      var say = function () { if (s.them && s.them.length) { kkReplies(name, s.them, go); } else { go(); } };
+      var say = function () { if (s.jump) { var jm = clockMin() + s.jump; setGameClock(Math.floor(jm / 60) % 24 + ':' + pad2(jm % 60)); }   /* jump: 시계 N분 앞으로 */
+        if (s.them && s.them.length) { kkReplies(name, s.them, go); } else { go(); } };
       if (s.wait) { kkLater(name, s.wait, say); } else { say(); }
       return;
     }
